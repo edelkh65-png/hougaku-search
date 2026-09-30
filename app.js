@@ -1,43 +1,40 @@
 function startMusicSearch(INSTRUMENTS, PIECES) {
   'use strict';
 
-  const KANJI_NUM = ['', '独奏', '二重奏', '三重奏', '四重奏', '五重奏', '六重奏', '七重奏', '八重奏', '九重奏'];
+  const NO_VALUE = '__none'; // 「分類なし」「作曲者の記載なし」の選択肢
 
-  const SETTING_OPTIONS = [
-    { value: 'solo',      label: '独奏' },
-    { value: 'chamber',   label: '室内楽（2人以上）' },
-    { value: 'concerto',  label: SETTINGS.concerto },
-    { value: 'orchestra', label: SETTINGS.orchestra },
-    { value: 'band',      label: SETTINGS.band },
-  ];
-
-  // 表記ゆれを吸収：全角/半角、大文字/小文字、カタカナ/ひらがな、ヴァ/バ、空白や記号
+  // 表記ゆれを吸収：全角/半角、大文字/小文字、カタカナ/ひらがな、ヴァ/バ、絃/弦、空白や記号
   function normalize(text) {
     return String(text)
       .normalize('NFKC')
       .toLowerCase()
       .replace(/ヴァ/g, 'バ').replace(/ヴィ/g, 'ビ').replace(/ヴェ/g, 'ベ').replace(/ヴォ/g, 'ボ').replace(/ヴ/g, 'ブ')
+      .replace(/ゔ/g, 'ぶ')
+      .replace(/絃/g, '弦')
       .replace(/[ァ-ヶ]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60))
       .replace(/[\s・.,、。「」『』()（）\-]/g, '');
   }
 
-  function ensembleLabel(piece) {
-    if (piece.setting !== 'chamber') return SETTINGS[piece.setting];
-    const n = piece.players;
-    return KANJI_NUM[n] || `${n}人のアンサンブル`;
+  function instrumentText(entry) {
+    if (entry.notation) return entry.notation;
+    const label = INSTRUMENTS[entry.key].label;
+    return entry.parts > 1 ? `${label}×${entry.parts}` : label;
   }
 
   // 検索用の値を事前に計算しておく
   const pieces = PIECES.map((p, index) => {
-    const keys = p.instruments.map(([key]) => key);
-    const players = p.setting === 'chamber'
-      ? p.instruments.reduce((sum, [, n]) => sum + (n || 0), 0)
-      : null;
-    const instrumentWords = keys.flatMap((k) => [INSTRUMENTS[k].label, ...INSTRUMENTS[k].aliases]);
-    const piece = Object.assign({}, p, { index, keys: new Set(keys), players });
-    piece.ensemble = ensembleLabel(piece);
-    piece.haystack = normalize([p.title, p.original, p.composer, p.composerOriginal, p.note || '',
-      piece.ensemble, ...instrumentWords].join(' '));
+    const instruments = p.instruments.filter((i) => INSTRUMENTS[i.key]);
+    const known = instruments.length > 0 && instruments.every((i) => i.parts);
+    const piece = Object.assign({}, p, {
+      index,
+      instruments,
+      keys: new Set(instruments.map((i) => i.key)),
+      players: known ? instruments.reduce((sum, i) => sum + i.parts, 0) : null,
+    });
+    const instrumentWords = instruments.flatMap((i) =>
+      [INSTRUMENTS[i.key].label, ...INSTRUMENTS[i.key].aliases, i.notation]);
+    piece.haystack = normalize([p.title, p.reading, p.subtitle, p.category, p.composer, p.arranger,
+      p.yearLabel, p.remarks, ...instrumentWords].join(' '));
     return piece;
   });
 
@@ -45,56 +42,59 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     form: document.getElementById('search-form'),
     q: document.getElementById('q'),
     groups: document.getElementById('instrument-groups'),
-    setting: document.getElementById('setting'),
-    era: document.getElementById('era'),
+    category: document.getElementById('category'),
+    composer: document.getElementById('composer'),
     min: document.getElementById('min'),
     max: document.getElementById('max'),
     sort: document.getElementById('sort'),
     reset: document.getElementById('reset-button'),
     list: document.getElementById('list'),
     count: document.getElementById('count'),
+    more: document.getElementById('more'),
     empty: document.getElementById('empty'),
   };
 
   const selected = new Set();
+  let results = [];
+  let shown = 0;
 
   // ---- 検索フォームの構築 ----
+  function countBy(fn) {
+    const counts = new Map();
+    pieces.forEach((p) => [].concat(fn(p)).forEach((v) => counts.set(v, (counts.get(v) || 0) + 1)));
+    return counts;
+  }
+
   function buildForm() {
-    const usage = {};
-    pieces.forEach((p) => p.keys.forEach((k) => { usage[k] = (usage[k] || 0) + 1; }));
+    const usage = countBy((p) => [...p.keys]);
 
     FAMILIES.forEach((family) => {
-      const keys = Object.keys(INSTRUMENTS).filter((k) => INSTRUMENTS[k].family === family.key && usage[k]);
+      const keys = Object.keys(INSTRUMENTS).filter((k) => INSTRUMENTS[k].family === family.key && usage.get(k));
       if (!keys.length) return;
 
-      const group = document.createElement('div');
-      group.className = 'chip-group';
-      const heading = document.createElement('p');
-      heading.className = 'chip-group-label';
-      heading.textContent = family.label;
-      group.appendChild(heading);
+      const group = el('div', 'chip-group');
+      group.appendChild(el('p', 'chip-group-label', family.label));
 
-      const chips = document.createElement('div');
-      chips.className = 'chips';
+      const chips = el('div', 'chips');
       keys.forEach((key) => {
-        const btn = document.createElement('button');
+        const btn = el('button', 'chip', INSTRUMENTS[key].label);
         btn.type = 'button';
-        btn.className = 'chip';
         btn.dataset.key = key;
         btn.setAttribute('aria-pressed', 'false');
-        btn.textContent = INSTRUMENTS[key].label;
-        const num = document.createElement('span');
-        num.className = 'chip-count';
-        num.textContent = usage[key];
-        btn.appendChild(num);
+        btn.appendChild(el('span', 'chip-count', String(usage.get(key))));
         chips.appendChild(btn);
       });
       group.appendChild(chips);
       els.groups.appendChild(group);
     });
 
-    SETTING_OPTIONS.forEach(({ value, label }) => els.setting.add(new Option(label, value)));
-    ERAS.forEach((era) => els.era.add(new Option(era, era)));
+    function fillSelect(select, counts, noneLabel) {
+      [...counts.keys()].filter(Boolean).sort(collator.compare)
+        .forEach((v) => select.add(new Option(`${v}（${counts.get(v)}）`, v)));
+      if (counts.get('')) select.add(new Option(`${noneLabel}（${counts.get('')}）`, NO_VALUE));
+    }
+    fillSelect(els.category, countBy((p) => p.category), '分類なし');
+    fillSelect(els.composer, countBy((p) => p.composer), '記載なし');
   }
 
   function toggleInstrument(key, force) {
@@ -109,12 +109,17 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     return {
       q: els.q.value.trim(),
       mode: els.form.elements.mode.value,
-      setting: els.setting.value,
-      era: els.era.value,
+      category: els.category.value,
+      composer: els.composer.value,
       min: parseInt(els.min.value, 10) || null,
       max: parseInt(els.max.value, 10) || null,
       sort: els.sort.value,
     };
+  }
+
+  function matchesSelect(value, filter) {
+    if (!filter) return true;
+    return filter === NO_VALUE ? !value : value === filter;
   }
 
   function matches(piece, state) {
@@ -128,13 +133,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       if (state.mode === 'exact' && piece.keys.size !== selected.size) return false;
     }
 
-    if (state.setting) {
-      if (state.setting === 'solo' && !(piece.setting === 'chamber' && piece.players === 1)) return false;
-      if (state.setting === 'chamber' && !(piece.setting === 'chamber' && piece.players >= 2)) return false;
-      if (['concerto', 'orchestra', 'band'].includes(state.setting) && piece.setting !== state.setting) return false;
-    }
-
-    if (state.era && piece.era !== state.era) return false;
+    if (!matchesSelect(piece.category, state.category)) return false;
+    if (!matchesSelect(piece.composer, state.composer)) return false;
 
     if (state.min || state.max) {
       if (piece.players === null) return false;
@@ -145,12 +145,14 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   }
 
   const collator = new Intl.Collator('ja');
+  const byReading = (a, b) => collator.compare(a.reading || a.title, b.reading || b.title);
+  // 値のない曲（作曲年・作曲者・人数が不明）は最後に並べる
+  const last = (v) => (v === null || v === '' ? 1 : 0);
   const sorters = {
-    year: (a, b) => a.year - b.year || collator.compare(a.title, b.title),
-    title: (a, b) => collator.compare(a.title, b.title),
-    composer: (a, b) => collator.compare(a.composer, b.composer) || a.year - b.year,
-    // 管弦楽などの人数未定の曲は最後に並べる
-    players: (a, b) => (a.players ?? Infinity) - (b.players ?? Infinity) || a.year - b.year,
+    reading: byReading,
+    year: (a, b) => last(a.year) - last(b.year) || a.year - b.year || byReading(a, b),
+    composer: (a, b) => last(a.composer) - last(b.composer) || collator.compare(a.composer, b.composer) || byReading(a, b),
+    players: (a, b) => last(a.players) - last(b.players) || a.players - b.players || byReading(a, b),
   };
 
   // ---- 表示 ----
@@ -165,33 +167,55 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     const li = el('li', 'card');
 
     const top = el('div', 'card-top');
-    top.appendChild(el('span', `badge badge-${piece.setting}`, piece.ensemble));
-    const meta = [piece.year ? `${piece.year}年` : '', piece.era || ''].filter(Boolean).join('・');
-    top.appendChild(el('span', 'meta', meta));
+    top.appendChild(piece.category ? el('span', 'badge', piece.category) : el('span'));
+    const meta = [];
+    const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
+    if (year) meta.push(`${year}年`);
+    if (piece.players) meta.push(`${piece.players}人`);
+    top.appendChild(el('span', 'meta', meta.join('・')));
     li.appendChild(top);
 
-    li.appendChild(el('h2', 'card-title', piece.title));
-    li.appendChild(el('p', 'card-original', piece.original));
-    li.appendChild(el('p', 'card-composer', `${piece.composer}（${piece.composerOriginal}）`));
+    const title = el('h2', 'card-title', piece.title);
+    if (piece.subtitle) title.appendChild(el('span', 'card-subtitle', piece.subtitle));
+    li.appendChild(title);
+    if (piece.reading) li.appendChild(el('p', 'card-reading', piece.reading));
 
-    const tags = el('ul', 'tags');
-    tags.setAttribute('aria-label', '楽器編成');
-    piece.instruments.forEach(([key, n, role]) => {
-      const item = el('li');
-      let text = INSTRUMENTS[key].label;
-      if (n > 1) text += ` ×${n}`;
-      const btn = el('button', 'tag' + (role === 'solo' ? ' tag-solo' : ''), (role === 'solo' ? '独奏 ' : '') + text);
-      btn.type = 'button';
-      btn.dataset.key = key;
-      btn.title = `「${INSTRUMENTS[key].label}」で絞り込む`;
-      if (selected.has(key)) btn.classList.add('is-selected');
-      item.appendChild(btn);
-      tags.appendChild(item);
-    });
-    li.appendChild(tags);
+    const people = [];
+    if (piece.composer) people.push(piece.composer);
+    if (piece.arranger) people.push(`編曲：${piece.arranger}`);
+    if (people.length) li.appendChild(el('p', 'card-composer', people.join('　')));
 
-    if (piece.note) li.appendChild(el('p', 'card-note', piece.note));
+    if (piece.instruments.length) {
+      const tags = el('ul', 'tags');
+      tags.setAttribute('aria-label', '楽器編成');
+      piece.instruments.forEach((entry) => {
+        const item = el('li');
+        let text = instrumentText(entry);
+        if (entry.optional && !/[(（]|省略可/.test(text)) text += '（省略可）';
+        const btn = el('button', 'tag' + (entry.solo ? ' tag-solo' : ''), text);
+        btn.type = 'button';
+        btn.dataset.key = entry.key;
+        btn.title = `「${INSTRUMENTS[entry.key].label}」で絞り込む`;
+        if (selected.has(entry.key)) btn.classList.add('is-selected');
+        item.appendChild(btn);
+        tags.appendChild(item);
+      });
+      li.appendChild(tags);
+    } else {
+      li.appendChild(el('p', 'card-note', '楽器編成の記載なし'));
+    }
+
+    if (piece.remarks) li.appendChild(el('p', 'card-note', piece.remarks));
     return li;
+  }
+
+  function showMore() {
+    const next = results.slice(shown, shown + PAGE_SIZE);
+    els.list.append(...next.map(renderCard));
+    shown += next.length;
+    const rest = results.length - shown;
+    els.more.hidden = rest <= 0;
+    els.more.textContent = `さらに表示（残り${rest}曲）`;
   }
 
   function writeUrl(state) {
@@ -199,11 +223,11 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (state.q) params.set('q', state.q);
     if (selected.size) params.set('inst', [...selected].join(','));
     if (state.mode !== 'include') params.set('mode', state.mode);
-    if (state.setting) params.set('setting', state.setting);
-    if (state.era) params.set('era', state.era);
+    if (state.category) params.set('category', state.category);
+    if (state.composer) params.set('composer', state.composer);
     if (state.min) params.set('min', state.min);
     if (state.max) params.set('max', state.max);
-    if (state.sort !== 'year') params.set('sort', state.sort);
+    if (state.sort !== 'reading') params.set('sort', state.sort);
     const query = params.toString();
     try {
       history.replaceState(null, '', query ? `?${query}` : location.pathname);
@@ -215,8 +239,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.q.value = params.get('q') || '';
     (params.get('inst') || '').split(',').filter((k) => INSTRUMENTS[k]).forEach((k) => toggleInstrument(k, true));
     if (params.get('mode') === 'exact') els.form.elements.mode.value = 'exact';
-    els.setting.value = params.get('setting') || '';
-    els.era.value = params.get('era') || '';
+    els.category.value = params.get('category') || '';
+    els.composer.value = params.get('composer') || '';
     els.min.value = params.get('min') || '';
     els.max.value = params.get('max') || '';
     if (sorters[params.get('sort')]) els.sort.value = params.get('sort');
@@ -224,9 +248,10 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   function update() {
     const state = readState();
-    const results = pieces.filter((p) => matches(p, state)).sort(sorters[state.sort]);
-
-    els.list.replaceChildren(...results.map(renderCard));
+    results = pieces.filter((p) => matches(p, state)).sort(sorters[state.sort]);
+    shown = 0;
+    els.list.replaceChildren();
+    showMore();
     els.count.textContent = `${results.length}件 / 全${pieces.length}曲`;
     els.empty.hidden = results.length > 0;
     writeUrl(state);
@@ -239,6 +264,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   els.form.addEventListener('input', update);
   els.form.addEventListener('submit', (e) => { e.preventDefault(); update(); });
   els.sort.addEventListener('change', update);
+  els.more.addEventListener('click', showMore);
 
   els.groups.addEventListener('click', (e) => {
     const chip = e.target.closest('.chip');
@@ -257,7 +283,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   els.reset.addEventListener('click', () => {
     els.form.reset();
     [...selected].forEach((k) => toggleInstrument(k, false));
-    els.sort.value = 'year';
+    els.sort.value = 'reading';
     update();
   });
 
