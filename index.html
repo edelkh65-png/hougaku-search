@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>楽曲検索</title>
 <meta name="description" content="箏・尺八・三絃などの邦楽曲を、曲名・よみがな・作曲者・楽器編成から検索できるWebアプリ">
-<link rel="stylesheet" href="style.css?v=20260930">
+<link rel="stylesheet" href="style.css?v=20260930-2">
 </head>
 <body>
 
@@ -66,15 +66,21 @@
   <main class="results">
     <div class="results-bar">
       <p id="count" aria-live="polite"></p>
-      <label class="sort">
-        並び順
-        <select id="sort">
-          <option value="reading">五十音順</option>
-          <option value="year">作曲年</option>
-          <option value="composer">作曲者</option>
-          <option value="players">人数</option>
-        </select>
-      </label>
+      <div class="results-controls">
+        <label class="sort">
+          並び順
+          <select id="sort">
+            <option value="reading">五十音順</option>
+            <option value="year">作曲年</option>
+            <option value="composer">作曲者</option>
+            <option value="players">人数</option>
+          </select>
+        </label>
+        <label class="sort">
+          表示件数
+          <select id="per-page"></select>
+        </label>
+      </div>
     </div>
     <ul id="list" class="cards"></ul>
     <button type="button" id="more" class="more" hidden></button>
@@ -92,9 +98,9 @@
   </p>
 </footer>
 
-<script src="config.js?v=20260930"></script>
-<script src="constants.js?v=20260930"></script>
-<script src="db.js?v=20260930"></script>
-<script src="app.js?v=20260930"></script>
+<script src="config.js?v=20260930-2"></script>
+<script src="constants.js?v=20260930-2"></script>
+<script src="db.js?v=20260930-2"></script>
+<script src="app.js?v=20260930-2"></script>
 </body>
 </html>

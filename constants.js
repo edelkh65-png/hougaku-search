@@ -9,5 +9,6 @@ const FAMILIES = [
   { key: 'other',      label: 'その他' },
 ];
 
-// 1ページに表示する曲数
-const PAGE_SIZE = 60;
+// 一度に表示する曲数の選択肢と初期値
+const PAGE_SIZES = [10, 20, 50, 100];
+const DEFAULT_PAGE_SIZE = 10;

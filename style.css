@@ -183,6 +183,7 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
   margin-bottom: 12px;
 }
 #count { margin: 0; font-weight: 700; }
+.results-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .sort { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 .sort select { width: auto; }
 

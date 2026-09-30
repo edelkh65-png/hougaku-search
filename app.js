@@ -47,6 +47,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     min: document.getElementById('min'),
     max: document.getElementById('max'),
     sort: document.getElementById('sort'),
+    perPage: document.getElementById('per-page'),
     reset: document.getElementById('reset-button'),
     list: document.getElementById('list'),
     count: document.getElementById('count'),
@@ -54,6 +55,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     empty: document.getElementById('empty'),
   };
 
+  const PER_PAGE_KEY = 'music-search-per-page';
   const selected = new Set();
   let results = [];
   let shown = 0;
@@ -93,6 +95,9 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
         .forEach((v) => select.add(new Option(`${v}（${counts.get(v)}）`, v)));
       if (counts.get('')) select.add(new Option(`${noneLabel}（${counts.get('')}）`, NO_VALUE));
     }
+    PAGE_SIZES.forEach((n) => els.perPage.add(new Option(`${n}曲`, String(n))));
+    els.perPage.value = String(DEFAULT_PAGE_SIZE);
+
     fillSelect(els.category, countBy((p) => p.category), '分類なし');
     fillSelect(els.composer, countBy((p) => p.composer), '記載なし');
   }
@@ -209,13 +214,17 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     return li;
   }
 
+  function pageSize() {
+    return Number(els.perPage.value) || DEFAULT_PAGE_SIZE;
+  }
+
   function showMore() {
-    const next = results.slice(shown, shown + PAGE_SIZE);
+    const next = results.slice(shown, shown + pageSize());
     els.list.append(...next.map(renderCard));
     shown += next.length;
     const rest = results.length - shown;
     els.more.hidden = rest <= 0;
-    els.more.textContent = `さらに表示（残り${rest}曲）`;
+    els.more.textContent = `さらに${Math.min(pageSize(), rest)}曲表示（残り${rest}曲）`;
   }
 
   function writeUrl(state) {
@@ -228,6 +237,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (state.min) params.set('min', state.min);
     if (state.max) params.set('max', state.max);
     if (state.sort !== 'reading') params.set('sort', state.sort);
+    if (pageSize() !== DEFAULT_PAGE_SIZE) params.set('per', pageSize());
     const query = params.toString();
     try {
       history.replaceState(null, '', query ? `?${query}` : location.pathname);
@@ -244,6 +254,13 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.min.value = params.get('min') || '';
     els.max.value = params.get('max') || '';
     if (sorters[params.get('sort')]) els.sort.value = params.get('sort');
+
+    // 表示件数：URL の指定 → 前回選んだ件数 → 初期値 の順
+    let per = params.get('per');
+    if (!per) {
+      try { per = localStorage.getItem(PER_PAGE_KEY); } catch (e) { per = null; }
+    }
+    if (PAGE_SIZES.includes(Number(per))) els.perPage.value = String(Number(per));
   }
 
   function update() {
@@ -264,6 +281,10 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   els.form.addEventListener('input', update);
   els.form.addEventListener('submit', (e) => { e.preventDefault(); update(); });
   els.sort.addEventListener('change', update);
+  els.perPage.addEventListener('change', () => {
+    try { localStorage.setItem(PER_PAGE_KEY, els.perPage.value); } catch (e) { /* 保存できなくても表示は切り替わる */ }
+    update();
+  });
   els.more.addEventListener('click', showMore);
 
   els.groups.addEventListener('click', (e) => {
