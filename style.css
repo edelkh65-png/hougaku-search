@@ -1,56 +1,62 @@
+/* 和紙と墨、朱の印（A＋C 案）：生成りの地に墨の文字、アクセントは朱。見出しは明朝体 */
 :root {
-  --bg: #f6f4ef;
-  --surface: #ffffff;
-  --text: #22201c;
-  --muted: #6b665c;
-  --line: #e2ddd2;
-  --accent: #8a3b2b;
-  --accent-soft: #f3e4df;
-  --accent-text: #ffffff;
+  --bg: #f3eee3;           /* 生成り */
+  --surface: #fbf8f1;
+  --text: #2a2723;         /* 墨 */
+  --muted: #6f675b;
+  --line: #d9cfbc;
+  --accent: #b23a2a;       /* 朱 */
+  --accent-soft: #f4e1d9;
+  --accent-text: #fbf8f1;
   --focus: #2f6fdd;
   --success: #2f6b3a;
   --success-soft: #e5f1e6;
   --danger: #b3261e;
   --danger-soft: #fbe7e5;
-  --warning-soft: #fbf1d9;
-  --radius: 10px;
+  --warning-soft: #f8edd3;
+  --string: #b9a98a;       /* 箏の絃 */
+  --radius: 4px;
+  --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  --mincho: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #181715;
-    --surface: #23211e;
-    --text: #ece8e0;
-    --muted: #a39d91;
-    --line: #3a3732;
-    --accent: #e0907c;
-    --accent-soft: #3d2922;
-    --accent-text: #1c1a17;
+    --bg: #1b1a17;
+    --surface: #24221e;
+    --text: #ebe4d4;
+    --muted: #a79e8c;
+    --line: #3d3930;
+    --accent: #e0735c;
+    --accent-soft: #3d2620;
+    --accent-text: #1b1a17;
     --focus: #7ea8ff;
     --success: #9fd4a7;
     --success-soft: #1f3323;
     --danger: #f2a09a;
     --danger-soft: #3d2220;
     --warning-soft: #3a3120;
+    --string: #6d6250;
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --bg: #181715;
-  --surface: #23211e;
-  --text: #ece8e0;
-  --muted: #a39d91;
-  --line: #3a3732;
-  --accent: #e0907c;
-  --accent-soft: #3d2922;
-  --accent-text: #1c1a17;
+  --bg: #1b1a17;
+  --surface: #24221e;
+  --text: #ebe4d4;
+  --muted: #a79e8c;
+  --line: #3d3930;
+  --accent: #e0735c;
+  --accent-soft: #3d2620;
+  --accent-text: #1b1a17;
   --focus: #7ea8ff;
   --success: #9fd4a7;
   --success-soft: #1f3323;
   --danger: #f2a09a;
   --danger-soft: #3d2220;
   --warning-soft: #3a3120;
+  --string: #6d6250;
   color-scheme: dark;
 }
 
@@ -62,7 +68,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  font-family: var(--sans);
   line-height: 1.6;
 }
 
@@ -75,8 +81,32 @@ button, input, select, textarea { font: inherit; color: inherit; }
   max-width: 1200px;
   margin: 0 auto;
   padding: 32px 16px 8px;
+  padding-bottom: 14px;
+  border-bottom: 3px double var(--line);
 }
-.site-header h1 { margin: 0; font-size: 1.8rem; letter-spacing: 0.05em; }
+.site-header h1 { margin: 0; font-family: var(--mincho); font-size: 1.9rem; font-weight: 700; letter-spacing: 0.12em; }
+
+/* 箏の13本の絃と、斜めに並ぶ柱（じ） */
+.koto {
+  position: relative;
+  height: 37px;
+  margin-top: 16px;
+  background: repeating-linear-gradient(to bottom, var(--string) 0 1px, transparent 1px 3px);
+}
+.koto span {
+  position: absolute;
+  left: calc(30% + var(--i) * 3.4%);
+  top: calc(var(--i) * 3px);
+  width: 11px;
+  height: 10px;
+  transform: translate(-50%, -75%);
+  background: var(--accent);
+  -webkit-mask: var(--ji-shape) center / contain no-repeat;
+  mask: var(--ji-shape) center / contain no-repeat;
+}
+:root {
+  --ji-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 11'%3E%3Cpath d='M5 0.5h2l1 3.5 3.5 6.5h-3L6 6 3.5 10.5h-3L4 4z'/%3E%3C/svg%3E");
+}
 .lead { margin: 4px 0 0; color: var(--muted); }
 
 /* ---- レイアウト ---- */
@@ -125,7 +155,7 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
   width: 100%;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--bg);
 }
 
@@ -148,6 +178,15 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
   gap: 6px;
 }
 .chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"]::before {
+  content: "";
+  width: 10px;
+  height: 9px;
+  margin-right: -1px;
+  background: currentColor;
+  -webkit-mask: var(--ji-shape) center / contain no-repeat;
+  mask: var(--ji-shape) center / contain no-repeat;
+}
 .chip[aria-pressed="true"] {
   background: var(--accent);
   border-color: var(--accent);
@@ -168,7 +207,7 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
   padding: 8px;
   border: 1px solid var(--line);
   background: transparent;
-  border-radius: 8px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 .reset:hover { border-color: var(--accent); color: var(--accent); }
@@ -211,16 +250,21 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .meta { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
+/* 分類は朱印（落款）風に */
 .badge {
+  font-family: var(--mincho);
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--accent-soft);
-  color: var(--accent);
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--accent);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 35%, transparent);
+  transform: rotate(-3deg);
 }
 
-.card-title { margin: 10px 0 0; font-size: 1.08rem; line-height: 1.4; text-wrap: balance; overflow-wrap: anywhere; }
+.card-title { margin: 10px 0 0; font-family: var(--mincho); font-size: 1.1rem; line-height: 1.4; text-wrap: balance; overflow-wrap: anywhere; }
 .card-subtitle { display: block; font-size: 0.8rem; font-weight: 400; color: var(--muted); }
 .card-reading { margin: 2px 0 0; font-size: 0.78rem; color: var(--muted); }
 .card-composer { margin: 6px 0 10px; font-size: 0.9rem; }
@@ -229,7 +273,7 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 .tag {
   border: 1px solid var(--line);
   background: transparent;
-  border-radius: 6px;
+  border-radius: 2px;
   padding: 1px 7px;
   font-size: 0.78rem;
   cursor: pointer;
@@ -275,7 +319,7 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
   display: grid;
   gap: 20px;
 }
-.admin h2 { margin: 0; font-size: 1.15rem; }
+.admin h2 { margin: 0; font-family: var(--mincho); font-size: 1.2rem; }
 
 .panel {
   background: var(--surface);
@@ -303,7 +347,7 @@ textarea { width: 100%; resize: vertical; }
 .notice, .error, .warning {
   margin: 0;
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-size: 0.92rem;
 }
 .notice-success { background: var(--success-soft); color: var(--success); }
@@ -317,7 +361,7 @@ textarea { width: 100%; resize: vertical; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .primary, .secondary, .danger-button {
   padding: 9px 18px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid var(--line);
   background: transparent;
   cursor: pointer;
