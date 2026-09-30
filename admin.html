@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20260930-5">
+<link rel="stylesheet" href="style.css?v=20260930-6">
 </head>
 <body>
 
@@ -75,17 +75,25 @@
           <datalist id="composer-list"></datalist>
         </div>
         <div class="field">
-          <label for="arranger">編曲者</label>
-          <input type="text" id="arranger" name="arranger">
+          <label for="composer-reading">作曲者のよみがな <span class="required" id="composer-reading-required" hidden>必須</span></label>
+          <input type="text" id="composer-reading" name="composer_reading" placeholder="ひらがなで入力（例：みやぎみちお）" disabled>
+          <p class="hint" id="composer-reading-hint">作曲者を入力すると入力できます</p>
         </div>
       </div>
 
       <div class="field-row">
         <div class="field">
+          <label for="arranger">編曲者</label>
+          <input type="text" id="arranger" name="arranger">
+        </div>
+        <div class="field">
           <label for="category">分類</label>
           <input type="text" id="category" name="category" list="category-list" placeholder="例：古典、新曲、編曲">
           <datalist id="category-list"></datalist>
         </div>
+      </div>
+
+      <div class="field-row">
         <div class="field">
           <label for="year">作曲年</label>
           <input type="text" id="year" name="year" inputmode="numeric" placeholder="例：1985、2020-22">
@@ -135,8 +143,8 @@
   </div>
 </template>
 
-<script src="config.js?v=20260930-5"></script>
-<script src="constants.js?v=20260930-5"></script>
-<script src="admin.js?v=20260930-5"></script>
+<script src="config.js?v=20260930-6"></script>
+<script src="constants.js?v=20260930-6"></script>
+<script src="admin.js?v=20260930-6"></script>
 </body>
 </html>

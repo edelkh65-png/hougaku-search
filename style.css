@@ -379,6 +379,8 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 }
 
 textarea { width: 100%; resize: vertical; }
+input:disabled { opacity: 0.55; cursor: not-allowed; }
+input[readonly] { background: var(--surface); color: var(--muted); }
 
 .required {
   font-size: 0.7rem;

@@ -22,12 +22,17 @@
     clear: $('clear'),
     recent: $('recent'),
     composerList: $('composer-list'),
+    composer: $('composer'),
+    composerReading: $('composer-reading'),
+    composerReadingHint: $('composer-reading-hint'),
+    composerReadingRequired: $('composer-reading-required'),
     categoryList: $('category-list'),
     rowTemplate: $('instrument-row'),
   };
 
   let session = readSession();
   let instruments = [];
+  let composers = new Map(); // 作曲者名 → よみがな（未登録は ''）
   let confirmedDuplicate = false;
 
   // ---- 共通 ----
@@ -155,11 +160,13 @@
 
     const [instrumentRows, composerRows, categoryRows] = await Promise.all([
       api('instruments?select=key,label,family&order=sort_order,id'),
-      api('composers?select=name&order=name'),
+      api('composers?select=name,reading&order=name'),
       api('pieces?select=category&category=not.is.null&limit=10000'),
     ]);
     instruments = instrumentRows;
-    fillDatalist(els.composerList, composerRows.map((r) => r.name));
+    composers = new Map(composerRows.map((r) => [r.name, r.reading || '']));
+    fillComposerList();
+    syncComposerReading();
     fillDatalist(els.categoryList, [...new Set(categoryRows.map((r) => r.category))]);
 
     els.form.hidden = false;
@@ -173,6 +180,56 @@
     const collator = new Intl.Collator('ja');
     list.replaceChildren(...values.sort(collator.compare).map((v) => new Option(v)));
   }
+
+  // 作曲者の候補。よみがながあれば候補の横に表示する
+  function fillComposerList() {
+    const collator = new Intl.Collator('ja');
+    const names = [...composers.keys()].sort(collator.compare);
+    els.composerList.replaceChildren(...names.map((name) => new Option(composers.get(name), name)));
+  }
+
+  // ---- 作曲者のよみがな ----
+  // カタカナはひらがなに、空白は取り除く
+  function toHiragana(text) {
+    return text.normalize('NFKC').replace(/\s+/g, '')
+      .replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  }
+
+  // 作曲者の入力に合わせて、よみがな欄の状態を切り替える
+  //   登録済みでよみがなあり → 自動で表示して変更不可
+  //   登録済みでよみがななし／新しい作曲者 → 入力必須
+  function syncComposerReading() {
+    const input = els.composerReading;
+    const name = els.composer.value.trim();
+    const known = composers.has(name);
+    const registered = known ? composers.get(name) : '';
+    if (input.dataset.auto === '1' && !(known && registered)) input.value = '';
+
+    let hint;
+    if (!name) {
+      input.value = '';
+      hint = '作曲者を入力すると入力できます';
+    } else if (registered) {
+      input.value = registered;
+      input.dataset.auto = '1';
+      hint = '登録済みの作曲者です（よみがなは変更できません）';
+    } else if (known) {
+      hint = 'よみがなが未登録の作曲者です。入力すると登録されます';
+    } else {
+      hint = '新しい作曲者として登録されます';
+    }
+    if (!(known && registered)) input.dataset.auto = '';
+    input.disabled = !name;
+    input.readOnly = Boolean(registered);
+    els.composerReadingRequired.hidden = !name || Boolean(registered);
+    els.composerReadingHint.textContent = hint;
+  }
+
+  els.composer.addEventListener('input', syncComposerReading);
+  els.composerReading.addEventListener('input', () => { els.composerReading.dataset.auto = ''; });
+  els.composerReading.addEventListener('change', () => {
+    els.composerReading.value = toHiragana(els.composerReading.value);
+  });
 
   // ---- 楽器編成の入力行 ----
   function addInstrumentRow() {
@@ -213,6 +270,16 @@
 
     if (!piece.title) return { error: '曲名を入力してください。', focus: f.title };
     if (!piece.reading) return { error: 'よみがなを入力してください。', focus: f.reading };
+
+    if (piece.composer) {
+      const reading = toHiragana(els.composerReading.value);
+      els.composerReading.value = reading;
+      if (!reading) return { error: '作曲者のよみがなを入力してください。', focus: els.composerReading };
+      if (!/^[\u3041-\u3096\u309d\u309eー・]+$/.test(reading)) {
+        return { error: '作曲者のよみがなは、ひらがなで入力してください。', focus: els.composerReading };
+      }
+      piece.composer_reading = reading;
+    }
 
     const yearText = value('year');
     if (yearText) {
@@ -285,8 +352,9 @@
       await api('rpc/add_piece', { method: 'POST', body: { piece } });
       showNotice(`「${piece.title}」を登録しました。`, 'success',
         { text: '検索ページで確認する', href: `index.html?q=${encodeURIComponent(piece.title)}` });
-      if (piece.composer && ![...els.composerList.options].some((o) => o.value === piece.composer)) {
-        els.composerList.appendChild(new Option(piece.composer));
+      if (piece.composer && !composers.get(piece.composer)) {
+        composers.set(piece.composer, piece.composer_reading);
+        fillComposerList();
       }
       if (piece.category && ![...els.categoryList.options].some((o) => o.value === piece.category)) {
         els.categoryList.appendChild(new Option(piece.category));
@@ -306,6 +374,7 @@
     els.form.reset();
     els.rows.replaceChildren();
     addInstrumentRow();
+    syncComposerReading();
     confirmedDuplicate = false;
     els.duplicate.hidden = true;
     showError(els.formError, '');

@@ -54,11 +54,14 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 4. おすすめ：**Authentication → Sign In / Providers** で「Allow new users to sign up」をオフにします。
    （オンのままでも、editors に入っていない人は登録・削除できません）
 
+`admin.sql` を更新したとき（例：作曲者のよみがな `composers.reading` への対応）は、SQL Editor で `admin.sql` をもう一度実行してください。何度実行しても大丈夫です。
+
 登録担当者を外すときは `delete from editors where user_id = (select id from auth.users where email = '…');` を実行します。
 
 登録ページでできること：
 - 曲の情報（曲名・よみがな・副題・作曲者・編曲者・分類・作曲年・備考）と楽器編成の入力
 - 作曲者・分類は既存の一覧から選ぶか、新しく入力（新しい作曲者は自動で追加）
+- 作曲者のよみがな：登録済みの作曲者は自動で表示（変更不可）。新しい作曲者や、よみがな未登録の作曲者は入力必須（カタカナで入力してもひらがなに変換）
 - 同じ曲名の曲がすでにある場合は確認を表示
 - 最近登録した10曲の確認と削除
 

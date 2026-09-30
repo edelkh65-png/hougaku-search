@@ -6,8 +6,9 @@
 drop table if exists piece_instruments, pieces, instruments, composers cascade;
 
 create table composers (
-  id   bigint generated always as identity primary key,
-  name text not null unique
+  id      bigint generated always as identity primary key,
+  name    text not null unique,
+  reading text                              -- 作曲者名の読み（ひらがな）
 );
 
 create table instruments (

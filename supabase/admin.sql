@@ -2,6 +2,9 @@
 -- schema.sql の後に、SQL Editor で実行してください（何度実行しても大丈夫です）。
 -- 登録できるのは editors テーブルに入っているユーザーだけです（最後の手順を参照）。
 
+-- 作曲者名の読み（ひらがな）。すでに追加済みなら何もしない
+alter table composers add column if not exists reading text;
+
 create table if not exists editors (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   created_at timestamptz not null default now()
@@ -29,13 +32,14 @@ end $$;
 
 -- 1曲分（曲の情報と楽器編成）をまとめて登録する。途中で失敗した場合は何も登録されない。
 -- piece の例：
---   {"title": "春の海", "reading": "はるのうみ", "composer": "宮城道雄", "year": 1929,
+--   {"title": "春の海", "reading": "はるのうみ", "composer": "宮城道雄", "composer_reading": "みやぎみちお", "year": 1929,
 --    "instruments": [{"key": "koto", "parts": 1}, {"key": "shakuhachi", "parts": 1}]}
 create or replace function add_piece(piece jsonb) returns bigint
 language plpgsql security invoker set search_path = public
 as $$
 declare
   v_composer_name text := nullif(btrim(piece->>'composer'), '');
+  v_composer_reading text := nullif(btrim(piece->>'composer_reading'), '');
   v_composer_id   bigint;
   v_piece_id      bigint;
   v_unknown       text;
@@ -54,9 +58,14 @@ begin
     raise exception '登録されていない楽器があります: %', v_unknown using errcode = '22023';
   end if;
 
+  -- 新しい作曲者は読みと一緒に追加。登録済みの作曲者は、読みが未登録のときだけ読みを補う
   if v_composer_name is not null then
-    insert into composers (name) values (v_composer_name) on conflict (name) do nothing;
+    insert into composers (name, reading) values (v_composer_name, v_composer_reading) on conflict (name) do nothing;
     select id into v_composer_id from composers where name = v_composer_name;
+    if v_composer_reading is not null then
+      update composers set reading = v_composer_reading
+      where id = v_composer_id and coalesce(reading, '') = '';
+    end if;
   end if;
 
   insert into pieces (title, reading, subtitle, category, composer_id, arranger, year, year_label, remarks)
