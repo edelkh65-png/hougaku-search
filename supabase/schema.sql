@@ -1,6 +1,7 @@
 -- 楽曲検索アプリのテーブル定義
 -- Supabase の SQL Editor に貼り付けて実行してください。
 -- 注意：既存の楽曲テーブル（composers / instruments / pieces / piece_instruments）を削除して作り直します。
+-- 登録ページを使う場合は、続けて admin.sql も実行してください。
 
 drop table if exists piece_instruments, pieces, instruments, composers cascade;
 

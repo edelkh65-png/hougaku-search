@@ -37,7 +37,32 @@ window.MUSIC_DB = {
 Publishable key は公開して問題ないキーです。`schema.sql` で「誰でも読めるが、書き込みはできない」設定（Row Level Security）にしているため、このキーでデータを変更することはできません。
 **secret キー / service_role キーは絶対に config.js に入れないでください**（全データを書き換えられてしまいます）。
 
-## 4. 楽曲を追加・編集する
+## 4. 楽曲登録ページを使えるようにする
+
+`music/admin.html` から、ログインした登録担当者が曲を追加・削除できます。
+
+1. SQL Editor で `admin.sql` の中身をすべて貼り付けて **Run** を押します。
+   - `schema.sql` を実行し直したときは、`admin.sql` も実行し直してください。
+2. 左メニューの **Authentication → Users** で「Add user」→「Create new user」を選び、登録担当者のメールアドレスとパスワードを入力します。
+   「Auto Confirm User」にチェックを入れてください。
+3. SQL Editor で次を実行し、そのユーザーを登録担当者にします（メールアドレスは書き換えてください）。
+
+   ```sql
+   insert into editors (user_id) select id from auth.users where email = 'you@example.com' on conflict do nothing;
+   ```
+
+4. おすすめ：**Authentication → Sign In / Providers** で「Allow new users to sign up」をオフにします。
+   （オンのままでも、editors に入っていない人は登録・削除できません）
+
+登録担当者を外すときは `delete from editors where user_id = (select id from auth.users where email = '…');` を実行します。
+
+登録ページでできること：
+- 曲の情報（曲名・よみがな・副題・作曲者・編曲者・分類・作曲年・備考）と楽器編成の入力
+- 作曲者・分類は既存の一覧から選ぶか、新しく入力（新しい作曲者は自動で追加）
+- 同じ曲名の曲がすでにある場合は確認を表示
+- 最近登録した10曲の確認と削除
+
+## 5. 楽曲を追加・編集する（その他の方法）
 
 ### まとめて更新する（CSV から作り直す）
 
@@ -86,4 +111,5 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 | `songs.csv` | 楽曲リストの元データ |
 | `import-csv.js` | CSV から `seed.sql` と `../data.js` を生成するスクリプト |
 | `schema.sql` | テーブル定義と閲覧権限の設定 |
+| `admin.sql` | 登録ページ用の設定（登録担当者・書き込み権限・登録用の関数） |
 | `seed.sql` | 楽曲データの登録用 SQL（自動生成） |
