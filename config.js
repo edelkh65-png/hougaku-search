@@ -4,6 +4,6 @@
 //   key: Publishable key（sb_publishable_... または旧 anon key）
 //        ブラウザに公開される前提のキーです。secret / service_role キーは絶対に入れないでください。
 window.MUSIC_DB = {
-  url: '',
-  key: '',
+  url: 'https://kulaxymceijiwkljutbm.supabase.co',
+  key: 'sb_publishable_SsId3pd_fdUxl95neXeaDg_WJR8d0fS',
 };
