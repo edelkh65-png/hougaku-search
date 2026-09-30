@@ -58,6 +58,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   };
 
   const PER_PAGE_KEY = 'music-search-per-page';
+  const RESTORE_KEY = 'music-search-restore';
   const selected = new Set();
   let results = [];
   let shown = 0;
@@ -182,7 +183,11 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     top.appendChild(el('span', 'meta', meta.join('・')));
     li.appendChild(top);
 
-    const title = el('h2', 'card-title', piece.title);
+    // 曲名のリンクがカード全体を覆い、どこを押しても詳細ページへ移る（楽器名のボタンは除く）
+    const title = el('h2', 'card-title');
+    const link = el('a', 'card-link', piece.title);
+    link.href = `piece.html?id=${piece.id}`;
+    title.appendChild(link);
     if (piece.subtitle) title.appendChild(el('span', 'card-subtitle', piece.subtitle));
     li.appendChild(title);
     if (piece.reading) li.appendChild(el('p', 'card-reading', piece.reading));
@@ -307,6 +312,13 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   });
 
   els.list.addEventListener('click', (e) => {
+    // 詳細ページへ移る前に、表示中の件数とスクロール位置を覚えておく
+    if (e.target.closest('.card-link')) {
+      try {
+        sessionStorage.setItem(RESTORE_KEY, JSON.stringify({ url: location.href, shown, y: window.scrollY }));
+      } catch (err) { /* 保存できなくても移動はできる */ }
+      return;
+    }
     const tag = e.target.closest('.tag');
     if (!tag) return;
     toggleInstrument(tag.dataset.key);
@@ -322,6 +334,19 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   });
 
   update();
+  restoreView();
+
+  // 詳細ページから戻ったとき、「さらに表示」で出していた件数とスクロール位置を戻す
+  function restoreView() {
+    let saved = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem(RESTORE_KEY));
+      sessionStorage.removeItem(RESTORE_KEY);
+    } catch (e) { return; }
+    if (!saved || saved.url !== location.href) return;
+    while (shown < saved.shown && shown < results.length) showMore();
+    window.scrollTo(0, saved.y);
+  }
 }
 
 (function () {

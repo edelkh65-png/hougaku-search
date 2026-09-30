@@ -1,37 +1,41 @@
 // 楽曲データの読み込み（Supabase、未設定なら data.js のデータ）
 // 戻り値：{ instruments: {key: {label, family, aliases}}, pieces: [...] }
+//   piece.id は Supabase の pieces.id（data.js では並び順 + 1 で、seed.sql の id と同じ）
 //   piece.instruments: [{ key, parts, notation, solo, optional }]
-async function loadMusicData() {
-  const config = window.MUSIC_DB || {};
-  if (!config.url || !config.key) return loadLocalData();
+const PIECE_SELECT = 'id,title,reading,subtitle,category,arranger,year,year_label,remarks,'
+  + 'composer:composers(name),'
+  + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key))';
 
+function musicDbConfig() {
+  const config = window.MUSIC_DB || {};
+  return config.url && config.key ? config : null;
+}
+
+async function musicDbGetAll(config, path) {
   const base = `${config.url.replace(/\/+$/, '')}/rest/v1/`;
   const PAGE = 1000; // Supabase が1回に返す最大件数
-
-  async function getAll(path) {
-    const rows = [];
-    for (let offset = 0; ; offset += PAGE) {
-      const res = await fetch(`${base}${path}&limit=${PAGE}&offset=${offset}`, { headers: { apikey: config.key } });
-      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      const page = await res.json();
-      rows.push(...page);
-      if (page.length < PAGE) return rows;
-    }
+  const rows = [];
+  for (let offset = 0; ; offset += PAGE) {
+    const res = await fetch(`${base}${path}&limit=${PAGE}&offset=${offset}`, { headers: { apikey: config.key } });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+    const page = await res.json();
+    rows.push(...page);
+    if (page.length < PAGE) return rows;
   }
+}
 
-  const [instrumentRows, pieceRows] = await Promise.all([
-    getAll('instruments?select=key,label,family,aliases&order=sort_order,id'),
-    getAll('pieces?select=title,reading,subtitle,category,arranger,year,year_label,remarks,'
-      + 'composer:composers(name),'
-      + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key))&order=id'),
-  ]);
-
+async function loadDbInstruments(config) {
+  const rows = await musicDbGetAll(config, 'instruments?select=key,label,family,aliases&order=sort_order,id');
   const instruments = {};
-  instrumentRows.forEach((row) => {
+  rows.forEach((row) => {
     instruments[row.key] = { label: row.label, family: row.family, aliases: row.aliases || [] };
   });
+  return instruments;
+}
 
-  const pieces = pieceRows.map((row) => ({
+function pieceFromDbRow(row) {
+  return {
+    id: row.id,
     title: row.title,
     reading: row.reading || '',
     subtitle: row.subtitle || '',
@@ -51,9 +55,31 @@ async function loadMusicData() {
         solo: pi.is_solo,
         optional: pi.is_optional,
       })),
-  }));
+  };
+}
 
-  return { instruments, pieces };
+async function loadMusicData() {
+  const config = musicDbConfig();
+  if (!config) return loadLocalData();
+  const [instruments, rows] = await Promise.all([
+    loadDbInstruments(config),
+    musicDbGetAll(config, `pieces?select=${PIECE_SELECT}&order=id`),
+  ]);
+  return { instruments, pieces: rows.map(pieceFromDbRow) };
+}
+
+// 1曲分だけ読み込む（見つからなければ piece は null）
+async function loadPiece(id) {
+  const config = musicDbConfig();
+  if (!config) {
+    const { instruments, pieces } = await loadLocalData();
+    return { instruments, piece: pieces.find((p) => p.id === id) || null };
+  }
+  const [instruments, rows] = await Promise.all([
+    loadDbInstruments(config),
+    musicDbGetAll(config, `pieces?select=${PIECE_SELECT}&id=eq.${id}`),
+  ]);
+  return { instruments, piece: rows.length ? pieceFromDbRow(rows[0]) : null };
 }
 
 async function loadLocalData() {
@@ -66,8 +92,8 @@ async function loadLocalData() {
       document.head.appendChild(script);
     });
   }
-  const pieces = PIECES.map((p) => Object.assign({
-    reading: '', subtitle: '', category: '', composer: '', arranger: '', year: null, yearLabel: '', remarks: '',
+  const pieces = PIECES.map((p, i) => Object.assign({
+    id: i + 1, reading: '', subtitle: '', category: '', composer: '', arranger: '', year: null, yearLabel: '', remarks: '',
   }, p, {
     instruments: p.instruments.map(([key, parts, notation, solo, optional]) => ({
       key, parts, notation: notation || '', solo: !!solo, optional: !!optional,
