@@ -1,4 +1,4 @@
-(function () {
+function startMusicSearch(INSTRUMENTS, PIECES) {
   'use strict';
 
   const KANJI_NUM = ['', '独奏', '二重奏', '三重奏', '四重奏', '五重奏', '六重奏', '七重奏', '八重奏', '九重奏'];
@@ -166,7 +166,8 @@
 
     const top = el('div', 'card-top');
     top.appendChild(el('span', `badge badge-${piece.setting}`, piece.ensemble));
-    top.appendChild(el('span', 'meta', `${piece.year}年・${piece.era}`));
+    const meta = [piece.year ? `${piece.year}年` : '', piece.era || ''].filter(Boolean).join('・');
+    top.appendChild(el('span', 'meta', meta));
     li.appendChild(top);
 
     li.appendChild(el('h2', 'card-title', piece.title));
@@ -261,4 +262,18 @@
   });
 
   update();
+}
+
+(function () {
+  const count = document.getElementById('count');
+  count.textContent = '読み込み中…';
+  loadMusicData()
+    .then(({ instruments, pieces }) => startMusicSearch(instruments, pieces))
+    .catch((error) => {
+      console.error(error);
+      count.textContent = '楽曲データを読み込めませんでした';
+      const empty = document.getElementById('empty');
+      empty.textContent = '時間をおいて再読み込みしてください。続く場合は config.js の接続設定を確認してください。';
+      empty.hidden = false;
+    });
 })();
