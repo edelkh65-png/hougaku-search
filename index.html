@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>楽曲検索</title>
+<meta name="description" content="曲名・作曲者・楽器編成からクラシックなどの楽曲を検索できるWebアプリ">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <h1>楽曲検索</h1>
+  <p class="lead">曲名・作曲者・楽器編成から楽曲を探せます</p>
+</header>
+
+<div class="layout">
+
+  <aside class="filters" aria-label="検索条件">
+    <form id="search-form" autocomplete="off">
+
+      <div class="field">
+        <label for="q">キーワード</label>
+        <input type="search" id="q" name="q" placeholder="例：月光、ブラームス、Op. 25、バイオリン">
+        <p class="hint">曲名・原題・作曲者・作品番号・楽器名が対象です</p>
+      </div>
+
+      <fieldset class="field">
+        <legend>楽器</legend>
+        <div id="instrument-groups"></div>
+        <div class="match-mode" role="radiogroup" aria-label="楽器の一致方法">
+          <label><input type="radio" name="mode" value="include" checked> 選んだ楽器をすべて含む</label>
+          <label><input type="radio" name="mode" value="exact"> 選んだ楽器だけの編成</label>
+        </div>
+      </fieldset>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="setting">編成の種類</label>
+          <select id="setting" name="setting">
+            <option value="">すべて</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="era">時代</label>
+          <select id="era" name="era">
+            <option value="">すべて</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="label" id="players-label">奏者の人数（独奏・室内楽）</span>
+        <div class="range" aria-labelledby="players-label">
+          <input type="number" id="min" name="min" min="1" max="20" placeholder="下限" aria-label="人数の下限">
+          <span>〜</span>
+          <input type="number" id="max" name="max" min="1" max="20" placeholder="上限" aria-label="人数の上限">
+          <span>人</span>
+        </div>
+      </div>
+
+      <button type="button" id="reset-button" class="reset">条件をクリア</button>
+    </form>
+  </aside>
+
+  <main class="results">
+    <div class="results-bar">
+      <p id="count" aria-live="polite"></p>
+      <label class="sort">
+        並び順
+        <select id="sort">
+          <option value="year">作曲年</option>
+          <option value="title">曲名</option>
+          <option value="composer">作曲者</option>
+          <option value="players">人数</option>
+        </select>
+      </label>
+    </div>
+    <ul id="list" class="cards"></ul>
+    <p id="empty" class="empty" hidden>条件に合う楽曲が見つかりませんでした。条件を減らしてみてください。</p>
+  </main>
+
+</div>
+
+<footer class="site-footer">
+  <p><a href="../index.html">トップページへ戻る</a></p>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
