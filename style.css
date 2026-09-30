@@ -20,7 +20,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #181715;
     --surface: #23211e;
     --text: #ece8e0;
@@ -38,7 +38,29 @@
     --badge-orchestra-text: #a9c6ec;
     --badge-band: #3a3020;
     --badge-band-text: #e8cb92;
+    color-scheme: dark;
   }
+}
+
+:root[data-theme="dark"] {
+  --bg: #181715;
+  --surface: #23211e;
+  --text: #ece8e0;
+  --muted: #a39d91;
+  --line: #3a3732;
+  --accent: #e0907c;
+  --accent-soft: #3d2922;
+  --accent-text: #1c1a17;
+  --focus: #7ea8ff;
+  --badge-chamber: #243427;
+  --badge-chamber-text: #a9d4ae;
+  --badge-concerto: #33283d;
+  --badge-concerto-text: #d2b8ea;
+  --badge-orchestra: #22303f;
+  --badge-orchestra-text: #a9c6ec;
+  --badge-band: #3a3020;
+  --badge-band-text: #e8cb92;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
