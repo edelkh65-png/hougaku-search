@@ -53,6 +53,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     count: document.getElementById('count'),
     more: document.getElementById('more'),
     empty: document.getElementById('empty'),
+    advanced: document.getElementById('advanced'),
+    advancedCount: document.getElementById('advanced-count'),
   };
 
   const PER_PAGE_KEY = 'music-search-per-page';
@@ -254,6 +256,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.min.value = params.get('min') || '';
     els.max.value = params.get('max') || '';
     if (sorters[params.get('sort')]) els.sort.value = params.get('sort');
+    // 詳細検索の条件が URL に入っていれば、最初から開いておく
+    if (['inst', 'category', 'composer', 'min', 'max'].some((k) => params.get(k))) els.advanced.open = true;
 
     // 表示件数：URL の指定 → 前回選んだ件数 → 初期値 の順
     let per = params.get('per');
@@ -263,8 +267,16 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (PAGE_SIZES.includes(Number(per))) els.perPage.value = String(Number(per));
   }
 
+  // 折りたたんだ詳細検索にも、設定中の条件数を表示する
+  function showAdvancedCount(state) {
+    const count = selected.size + [state.category, state.composer, state.min || state.max].filter(Boolean).length;
+    els.advancedCount.textContent = `${count}件の条件`;
+    els.advancedCount.hidden = count === 0;
+  }
+
   function update() {
     const state = readState();
+    showAdvancedCount(state);
     results = pieces.filter((p) => matches(p, state)).sort(sorters[state.sort]);
     shown = 0;
     els.list.replaceChildren();
@@ -298,6 +310,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     const tag = e.target.closest('.tag');
     if (!tag) return;
     toggleInstrument(tag.dataset.key);
+    els.advanced.open = true;
     update();
   });
 

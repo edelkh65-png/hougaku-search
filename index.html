@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20260930-3">
+<link rel="stylesheet" href="style.css?v=20260930-4">
 </head>
 <body>
 
@@ -31,39 +31,44 @@
         <p class="hint">曲名・よみがな・副題・作曲者・編曲者・楽器名・備考が対象です</p>
       </div>
 
-      <fieldset class="field">
-        <legend>楽器</legend>
-        <div id="instrument-groups"></div>
-        <div class="match-mode" role="radiogroup" aria-label="楽器の一致方法">
-          <label><input type="radio" name="mode" value="include" checked> 選んだ楽器をすべて含む</label>
-          <label><input type="radio" name="mode" value="exact"> 選んだ楽器だけの編成</label>
-        </div>
-      </fieldset>
+      <details class="advanced" id="advanced">
+        <summary><span>詳細検索</span><span id="advanced-count" class="advanced-count" hidden></span></summary>
+        <div class="advanced-body">
+          <fieldset class="field">
+            <legend>楽器</legend>
+            <div id="instrument-groups"></div>
+            <div class="match-mode" role="radiogroup" aria-label="楽器の一致方法">
+              <label><input type="radio" name="mode" value="include" checked> 選んだ楽器をすべて含む</label>
+              <label><input type="radio" name="mode" value="exact"> 選んだ楽器だけの編成</label>
+            </div>
+          </fieldset>
 
-      <div class="field-row">
-        <div class="field">
-          <label for="category">分類</label>
-          <select id="category" name="category">
-            <option value="">すべて</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="composer">作曲者</label>
-          <select id="composer" name="composer">
-            <option value="">すべて</option>
-          </select>
-        </div>
-      </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="category">分類</label>
+              <select id="category" name="category">
+                <option value="">すべて</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="composer">作曲者</label>
+              <select id="composer" name="composer">
+                <option value="">すべて</option>
+              </select>
+            </div>
+          </div>
 
-      <div class="field">
-        <span class="label" id="players-label">奏者の人数（パート数）</span>
-        <div class="range" aria-labelledby="players-label">
-          <input type="number" id="min" name="min" min="1" max="20" placeholder="下限" aria-label="人数の下限">
-          <span>〜</span>
-          <input type="number" id="max" name="max" min="1" max="20" placeholder="上限" aria-label="人数の上限">
-          <span>人</span>
+          <div class="field">
+            <span class="label" id="players-label">奏者の人数（パート数）</span>
+            <div class="range" aria-labelledby="players-label">
+              <input type="number" id="min" name="min" min="1" max="20" placeholder="下限" aria-label="人数の下限">
+              <span>〜</span>
+              <input type="number" id="max" name="max" min="1" max="20" placeholder="上限" aria-label="人数の上限">
+              <span>人</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </details>
 
       <button type="button" id="reset-button" class="reset">条件をクリア</button>
     </form>
@@ -104,9 +109,9 @@
   </p>
 </footer>
 
-<script src="config.js?v=20260930-3"></script>
-<script src="constants.js?v=20260930-3"></script>
-<script src="db.js?v=20260930-3"></script>
-<script src="app.js?v=20260930-3"></script>
+<script src="config.js?v=20260930-4"></script>
+<script src="constants.js?v=20260930-4"></script>
+<script src="db.js?v=20260930-4"></script>
+<script src="app.js?v=20260930-4"></script>
 </body>
 </html>

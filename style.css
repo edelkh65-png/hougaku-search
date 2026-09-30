@@ -162,6 +162,42 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 .range { display: flex; align-items: center; gap: 8px; }
 .range input { width: 5.5em; }
 
+.advanced { margin: 0 0 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.advanced summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  list-style: none;
+}
+.advanced summary::-webkit-details-marker { display: none; }
+.advanced summary::after {
+  content: "";
+  margin-left: auto;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform .15s;
+}
+.advanced[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+.advanced summary:hover { color: var(--accent); }
+.advanced-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+}
+.advanced-body { padding: 4px 0 4px; }
+.advanced-body > .field:last-child { margin-bottom: 12px; }
+@media (prefers-reduced-motion: reduce) { .advanced summary::after { transition: none; } }
+
 .chip-group { margin-bottom: 10px; }
 .chip-group-label { margin: 0 0 4px; font-size: 0.78rem; color: var(--muted); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
