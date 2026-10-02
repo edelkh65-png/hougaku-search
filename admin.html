@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>楽曲の登録</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
@@ -11,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20261002-11">
+<link rel="stylesheet" href="style.css?v=20261002-12">
 </head>
 <body>
 
@@ -72,12 +73,12 @@
     <form id="password-form" class="stack">
       <input type="email" id="password-username" name="username" autocomplete="username" hidden>
       <div class="field">
-        <label for="new-password">新しいパスワード <span class="hint">（6文字以上）</span></label>
-        <input type="password" id="new-password" name="password" autocomplete="new-password" minlength="6" required>
+        <label for="new-password">新しいパスワード <span class="hint">（8文字以上・英字と数字を両方含める）</span></label>
+        <input type="password" id="new-password" name="password" autocomplete="new-password" minlength="8" required>
       </div>
       <div class="field">
         <label for="new-password-confirm">確認のためもう一度</label>
-        <input type="password" id="new-password-confirm" name="confirm" autocomplete="new-password" minlength="6" required>
+        <input type="password" id="new-password-confirm" name="confirm" autocomplete="new-password" minlength="8" required>
       </div>
       <p id="password-error" class="error" role="alert" hidden></p>
       <div class="actions">
@@ -196,9 +197,9 @@
   </div>
 </template>
 
-<script src="config.js?v=20261002-11"></script>
-<script src="constants.js?v=20261002-11"></script>
-<script src="combo.js?v=20261002-11"></script>
-<script src="admin.js?v=20261002-11"></script>
+<script src="config.js?v=20261002-12"></script>
+<script src="constants.js?v=20261002-12"></script>
+<script src="combo.js?v=20261002-12"></script>
+<script src="admin.js?v=20261002-12"></script>
 </body>
 </html>

@@ -3,6 +3,8 @@
 
   const config = window.MUSIC_DB || {};
   const SESSION_KEY = 'music-admin-session';
+  // Supabase の Authentication の設定（最低文字数・英字と数字）と合わせる
+  const MIN_PASSWORD_LENGTH = 8;
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -540,8 +542,9 @@
     const f = els.passwordForm.elements;
     const button = els.passwordForm.querySelector('button[type="submit"]');
     showError(els.passwordError, '');
-    if (f.password.value.length < 6) {
-      showError(els.passwordError, 'パスワードは6文字以上にしてください。');
+    const password = f.password.value;
+    if (password.length < MIN_PASSWORD_LENGTH || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      showError(els.passwordError, `パスワードは${MIN_PASSWORD_LENGTH}文字以上で、英字と数字を両方含めてください。`);
       f.password.focus();
       return;
     }
@@ -566,7 +569,7 @@
       const code = err.data && err.data.error_code;
       showError(els.passwordError,
         code === 'same_password' ? '今までと同じパスワードは使えません。別のパスワードにしてください。'
-          : code === 'weak_password' ? 'パスワードが簡単すぎます。もっと長いパスワードにしてください。'
+          : code === 'weak_password' ? 'パスワードが簡単すぎます。もっと長く、英字と数字を組み合わせたパスワードにしてください。'
             : `パスワードを設定できませんでした：${err.message}`);
     } finally {
       button.disabled = false;

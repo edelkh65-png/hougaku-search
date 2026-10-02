@@ -60,6 +60,11 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 
 5. おすすめ：**Authentication → Sign In / Providers** で「Allow new users to sign up」をオフにします。
    （オンのままでも、editors に入っていない人は登録・削除できません。オフにしても招待はできます）
+6. パスワードの条件を強くします。**Authentication → Sign In / Providers → Email**（画面によっては **Authentication → Policies** や **Password security**）で次のように設定して保存します。
+   - **Minimum password length**：`8`
+   - **Password requirements**：「Letters and digits」（英字と数字を両方含める）
+   - 登録ページの入力チェックもこの条件（8文字以上・英字と数字）に合わせています。条件を変えたときは `admin.js` の `MIN_PASSWORD_LENGTH` と、`admin.html` のパスワード欄の説明も合わせて直してください。
+   - 設定前に作ったパスワードはそのまま使えます。気になる場合は「パスワードを忘れた場合」から設定し直してください。
 
 ### 招待・パスワードについて
 
@@ -134,8 +139,18 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 | `admin.sql` | 登録ページ用の設定（登録担当者・書き込み権限・登録用の関数） |
 | `seed.sql` | 楽曲データの登録用 SQL（自動生成） |
 
+## 画面のセキュリティ設定（CSP）
+
+3つの HTML の先頭にある `<meta http-equiv="Content-Security-Policy" …>` で、ページが読み込める先を次に限っています。万一不正なスクリプトが入り込むような不具合があっても、外部のスクリプトを読み込んだり、ほかのサイトへデータを送ったりできないようにするためのものです。
+
+- スクリプト・画像：このサイト自身のファイルだけ
+- 通信：このサイトと Supabase（`https://*.supabase.co`）だけ
+- フォント：Google Fonts だけ
+
+ほかのサイトの画像・スクリプト・サービスを使うようにした場合は、この設定にその読み込み先を追加しないと、ブラウザが読み込みを止めます。
+
 ## 画面のファイルを更新したとき
 
-`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261002-11` のように版番号付きで読み込んでいます。
+`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261002-12` のように版番号付きで読み込んでいます。
 `style.css` や `*.js` を変更したら、この `v=` の値（日付など）を両方の HTML で新しい値に書き換えてください（3つの HTML すべて）。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。
