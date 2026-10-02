@@ -1,7 +1,7 @@
 function startMusicSearch(INSTRUMENTS, PIECES) {
   'use strict';
 
-  const NO_VALUE = '__none'; // 「分類なし」「作曲者の記載なし」の選択肢
+  const NO_VALUE = '__none'; // 「作曲者の記載なし」の選択肢
 
   // 表記ゆれを吸収：全角/半角、大文字/小文字、カタカナ/ひらがな、ヴァ/バ、絃/弦、空白や記号
   function normalize(text) {
@@ -48,7 +48,6 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     form: document.getElementById('search-form'),
     q: document.getElementById('q'),
     groups: document.getElementById('instrument-groups'),
-    category: document.getElementById('category'),
     composer: document.getElementById('composer'),
     min: document.getElementById('min'),
     max: document.getElementById('max'),
@@ -146,15 +145,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       els.groups.appendChild(group);
     });
 
-    function fillSelect(select, counts, noneLabel, sortKey = (v) => v) {
-      [...counts.keys()].filter(Boolean).sort((x, y) => collator.compare(sortKey(x), sortKey(y)) || collator.compare(x, y))
-        .forEach((v) => select.add(new Option(`${v}（${counts.get(v)}）`, v)));
-      if (counts.get('')) select.add(new Option(`${noneLabel}（${counts.get('')}）`, NO_VALUE));
-    }
     PAGE_SIZES.forEach((n) => els.perPage.add(new Option(`${n}曲`, String(n))));
     els.perPage.value = String(DEFAULT_PAGE_SIZE);
-
-    fillSelect(els.category, countBy((p) => p.category), '分類なし');
   }
 
   // ---- 作曲者の入力欄（よみ・名前で候補を出して選ぶ。部品は combo.js） ----
@@ -230,7 +222,6 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       q: els.q.value.trim(),
       mode: els.form.elements.mode.value,
       cmp: els.form.elements.cmp.value,
-      category: els.category.value,
       composer: els.composer.value,
       min: parseInt(els.min.value, 10) || null,
       max: parseInt(els.max.value, 10) || null,
@@ -262,7 +253,6 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       if (state.mode === 'exact' && piece.keys.size !== selected.size) return false;
     }
 
-    if (!matchesSelect(piece.category, state.category)) return false;
     if (!matchesSelect(piece.composer, state.composer)) return false;
 
     if (state.min || state.max) {
@@ -385,7 +375,6 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (selected.size) params.set('inst', [...selected].map(([k, c]) => (c ? `${k}:${c}` : k)).join(','));
     if (state.cmp === 'gte' && [...selected.values()].some(Boolean)) params.set('cmp', 'gte');
     if (state.mode !== 'include') params.set('mode', state.mode);
-    if (state.category) params.set('category', state.category);
     if (state.composer) params.set('composer', state.composer);
     if (state.min) params.set('min', state.min);
     if (state.max) params.set('max', state.max);
@@ -409,7 +398,6 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     });
     if (params.get('cmp') === 'gte') els.form.elements.cmp.value = 'gte';
     if (params.get('mode') === 'exact') els.form.elements.mode.value = 'exact';
-    els.category.value = params.get('category') || '';
     setComposer(params.get('composer') || '', false);
     els.min.value = params.get('min') || '';
     els.max.value = params.get('max') || '';
@@ -420,7 +408,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.order.value = params.get('order') === 'desc' ? 'desc' : 'asc';
     updateOrderLabels();
     // 詳細検索の条件が URL に入っていれば、最初から開いておく
-    if (['inst', 'category', 'composer', 'min', 'max'].some((k) => params.get(k))) els.advanced.open = true;
+    if (['inst', 'composer', 'min', 'max'].some((k) => params.get(k))) els.advanced.open = true;
 
     // 表示件数：URL の指定 → 前回選んだ件数 → 初期値 の順
     let per = params.get('per');
@@ -432,14 +420,14 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   // 折りたたんだ詳細検索にも、設定中の条件数を表示する
   function showAdvancedCount(state) {
-    const count = selected.size + [state.category, state.composer, state.min || state.max].filter(Boolean).length;
+    const count = selected.size + [state.composer, state.min || state.max].filter(Boolean).length;
     els.advancedCount.textContent = `${count}件の条件`;
     els.advancedCount.hidden = count === 0;
   }
 
-  // 検索条件（キーワード・楽器・分類・作曲者・パート数）が1つでもあるか
+  // 検索条件（キーワード・楽器・作曲者・パート数）が1つでもあるか
   function hasConditions(state) {
-    return Boolean(state.q || selected.size || state.category || state.composer || state.min || state.max);
+    return Boolean(state.q || selected.size || state.composer || state.min || state.max);
   }
   // 並び順を選んでいないときの並び：条件なしはランダム、条件ありは五十音順
   function autoSort(state) {

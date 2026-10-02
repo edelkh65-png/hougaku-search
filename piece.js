@@ -80,7 +80,7 @@
     const rows = [
       ['作曲者', piece.composer ? link(piece.composer, searchUrl({ composer: piece.composer })) : '記載なし'],
       ['編曲者', piece.arranger],
-      ['分類', piece.category ? link(piece.category, searchUrl({ category: piece.category })) : ''],
+      ['分類', piece.category],
       ['作曲年', year && `${year}年`],
       ['パート数', players ? `${players}パート` : (piece.instruments.length ? '不明（パート数の記載がない楽器があります）' : '')],
     ].filter(([, value]) => value);
