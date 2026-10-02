@@ -1,9 +1,10 @@
 // 楽曲データの読み込み（Supabase、未設定なら data.js のデータ）
 // 戻り値：{ instruments: {key: {label, family, aliases}}, pieces: [...] }
 //   piece.id は Supabase の pieces.id（data.js では並び順 + 1 で、seed.sql の id と同じ）
+//   piece.composerReading は作曲者名の読み（data.js では空。並び替えは作曲者名で代用）
 //   piece.instruments: [{ key, parts, notation, solo, optional }]
 const PIECE_SELECT = 'id,title,reading,subtitle,category,arranger,year,year_label,remarks,'
-  + 'composer:composers(name),'
+  + 'composer:composers(name,reading),'
   + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key))';
 
 function musicDbConfig() {
@@ -41,6 +42,7 @@ function pieceFromDbRow(row) {
     subtitle: row.subtitle || '',
     category: row.category || '',
     composer: row.composer ? row.composer.name : '',
+    composerReading: row.composer ? row.composer.reading || '' : '',
     arranger: row.arranger || '',
     year: row.year,
     yearLabel: row.year_label || '',
@@ -93,7 +95,7 @@ async function loadLocalData() {
     });
   }
   const pieces = PIECES.map((p, i) => Object.assign({
-    id: i + 1, reading: '', subtitle: '', category: '', composer: '', arranger: '', year: null, yearLabel: '', remarks: '',
+    id: i + 1, reading: '', subtitle: '', category: '', composer: '', composerReading: '', arranger: '', year: null, yearLabel: '', remarks: '',
   }, p, {
     instruments: p.instruments.map(([key, parts, notation, solo, optional]) => ({
       key, parts, notation: notation || '', solo: !!solo, optional: !!optional,

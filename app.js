@@ -33,7 +33,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     });
     const instrumentWords = instruments.flatMap((i) =>
       [INSTRUMENTS[i.key].label, ...INSTRUMENTS[i.key].aliases, i.notation]);
-    piece.haystack = normalize([p.title, p.reading, p.subtitle, p.category, p.composer, p.arranger,
+    piece.haystack = normalize([p.title, p.reading, p.subtitle, p.category, p.composer, p.composerReading, p.arranger,
       p.yearLabel, p.remarks, ...instrumentWords].join(' '));
     return piece;
   });
@@ -93,8 +93,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       els.groups.appendChild(group);
     });
 
-    function fillSelect(select, counts, noneLabel) {
-      [...counts.keys()].filter(Boolean).sort(collator.compare)
+    function fillSelect(select, counts, noneLabel, sortKey = (v) => v) {
+      [...counts.keys()].filter(Boolean).sort((x, y) => collator.compare(sortKey(x), sortKey(y)) || collator.compare(x, y))
         .forEach((v) => select.add(new Option(`${v}（${counts.get(v)}）`, v)));
       if (counts.get('')) select.add(new Option(`${noneLabel}（${counts.get('')}）`, NO_VALUE));
     }
@@ -102,7 +102,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.perPage.value = String(DEFAULT_PAGE_SIZE);
 
     fillSelect(els.category, countBy((p) => p.category), '分類なし');
-    fillSelect(els.composer, countBy((p) => p.composer), '記載なし');
+    const composerReadings = new Map(pieces.map((p) => [p.composer, p.composerReading]));
+    fillSelect(els.composer, countBy((p) => p.composer), '記載なし', (name) => composerSortKey(name, composerReadings.get(name)));
   }
 
   function toggleInstrument(key, force) {
@@ -156,10 +157,16 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   const byReading = (a, b) => collator.compare(a.reading || a.title, b.reading || b.title);
   // 値のない曲（作曲年・作曲者・人数が不明）は最後に並べる
   const last = (v) => (v === null || v === '' ? 1 : 0);
+  // 作曲者は読みの五十音順。読みがない作曲者は名前で並べる（ひらがなの後ろに来る）
+  function composerSortKey(name, reading) {
+    return reading || name;
+  }
+  const byComposer = (a, b) => collator.compare(composerSortKey(a.composer, a.composerReading), composerSortKey(b.composer, b.composerReading))
+    || collator.compare(a.composer, b.composer);
   const sorters = {
     reading: byReading,
     year: (a, b) => last(a.year) - last(b.year) || a.year - b.year || byReading(a, b),
-    composer: (a, b) => last(a.composer) - last(b.composer) || collator.compare(a.composer, b.composer) || byReading(a, b),
+    composer: (a, b) => last(a.composer) - last(b.composer) || byComposer(a, b) || byReading(a, b),
     players: (a, b) => last(a.players) - last(b.players) || a.players - b.players || byReading(a, b),
   };
 

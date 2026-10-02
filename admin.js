@@ -184,7 +184,9 @@
   // 作曲者の候補。よみがながあれば候補の横に表示する
   function fillComposerList() {
     const collator = new Intl.Collator('ja');
-    const names = [...composers.keys()].sort(collator.compare);
+    // 読みの五十音順（読みがない作曲者は名前で並べる）
+    const key = (name) => composers.get(name) || name;
+    const names = [...composers.keys()].sort((x, y) => collator.compare(key(x), key(y)) || collator.compare(x, y));
     els.composerList.replaceChildren(...names.map((name) => new Option(composers.get(name), name)));
   }
 
