@@ -72,6 +72,27 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   const PER_PAGE_KEY = 'music-search-per-page';
   const RESTORE_KEY = 'music-search-restore';
+
+  // ランダム表示の並び。開くたびに新しい種で並べ、詳細ページから戻ったときだけ同じ種で並べ直す
+  const savedView = (() => {
+    try { return JSON.parse(sessionStorage.getItem(RESTORE_KEY)); } catch (e) { return null; }
+  })();
+  const randomSeed = savedView && savedView.url === location.href && savedView.seed
+    ? savedView.seed
+    : Math.floor(Math.random() * 2 ** 31) + 1;
+  (function assignRandomOrder(seed) {
+    // 種から同じ乱数列を作る（mulberry32）
+    let t = seed;
+    const next = () => {
+      t = (t + 0x6d2b79f5) | 0;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+    pieces.forEach((p) => { p.rand = next(); });
+  })(randomSeed);
+  // 並び順を自分で選んだかどうか。選んでいなければ、条件なし→ランダム、条件あり→五十音順
+  let sortChosen = false;
   const MAX_PARTS = 99;
   // 選んだ楽器 → 指定したパート数（null は指定なし）
   const selected = new Map();
@@ -373,6 +394,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     || collator.compare(a.composer, b.composer);
   // 並び順ごとの比較（dir：1 は昇順、-1 は降順）。値のない曲はどちらの向きでも最後
   const sorters = {
+    random: () => (a, b) => a.rand - b.rand,
     reading: (dir) => (a, b) => dir * byReading(a, b),
     year: (dir) => (a, b) => last(a.year) - last(b.year) || dir * (a.year - b.year) || byReading(a, b),
     composer: (dir) => (a, b) => last(a.composer) - last(b.composer) || dir * byComposer(a, b) || byReading(a, b),
@@ -380,12 +402,15 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   };
   // 昇順・降順の表示名（並び順に合わせて言い換える）
   const ORDER_LABELS = {
+    random: ['', ''],
     reading: ['あ→ん', 'ん→あ'],
     year: ['古い順', '新しい順'],
     composer: ['あ→ん', 'ん→あ'],
     players: ['少ない順', '多い順'],
   };
   function updateOrderLabels() {
+    // ランダムのときは向きの欄を隠す
+    els.order.hidden = els.sort.value === 'random';
     const [asc, desc] = ORDER_LABELS[els.sort.value];
     els.order.options[0].textContent = asc;
     els.order.options[1].textContent = desc;
@@ -473,8 +498,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (state.composer) params.set('composer', state.composer);
     if (state.min) params.set('min', state.min);
     if (state.max) params.set('max', state.max);
-    if (state.sort !== 'reading') params.set('sort', state.sort);
-    if (state.order === 'desc') params.set('order', 'desc');
+    if (state.sort !== autoSort(state)) params.set('sort', state.sort);
+    if (state.order === 'desc' && state.sort !== 'random') params.set('order', 'desc');
     if (pageSize() !== DEFAULT_PAGE_SIZE) params.set('per', pageSize());
     const query = params.toString();
     try {
@@ -497,7 +522,10 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     setComposer(params.get('composer') || '', false);
     els.min.value = params.get('min') || '';
     els.max.value = params.get('max') || '';
-    if (sorters[params.get('sort')]) els.sort.value = params.get('sort');
+    if (sorters[params.get('sort')]) {
+      els.sort.value = params.get('sort');
+      sortChosen = true;
+    }
     els.order.value = params.get('order') === 'desc' ? 'desc' : 'asc';
     updateOrderLabels();
     // 詳細検索の条件が URL に入っていれば、最初から開いておく
@@ -518,8 +546,22 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.advancedCount.hidden = count === 0;
   }
 
+  // 検索条件（キーワード・楽器・分類・作曲者・パート数）が1つでもあるか
+  function hasConditions(state) {
+    return Boolean(state.q || selected.size || state.category || state.composer || state.min || state.max);
+  }
+  // 並び順を選んでいないときの並び：条件なしはランダム、条件ありは五十音順
+  function autoSort(state) {
+    return hasConditions(state) ? 'reading' : 'random';
+  }
+
   function update() {
     const state = readState();
+    if (!sortChosen && state.sort !== autoSort(state)) {
+      state.sort = autoSort(state);
+      els.sort.value = state.sort;
+      updateOrderLabels();
+    }
     showAdvancedCount(state);
     // 「ちょうど／以上」は、パート数を指定したときだけ表示する
     els.countMode.hidden = ![...selected.values()].some(Boolean);
@@ -540,7 +582,11 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   els.form.addEventListener('input', update);
   els.form.addEventListener('submit', (e) => { e.preventDefault(); update(); });
-  els.sort.addEventListener('change', () => { updateOrderLabels(); update(); });
+  els.sort.addEventListener('change', () => {
+    sortChosen = true;
+    updateOrderLabels();
+    update();
+  });
   els.order.addEventListener('change', update);
   els.perPage.addEventListener('change', () => {
     try { localStorage.setItem(PER_PAGE_KEY, els.perPage.value); } catch (e) { /* 保存できなくても表示は切り替わる */ }
@@ -565,7 +611,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     // 詳細ページへ移る前に、表示中の件数とスクロール位置を覚えておく
     if (e.target.closest('.card-link')) {
       try {
-        sessionStorage.setItem(RESTORE_KEY, JSON.stringify({ url: location.href, shown, y: window.scrollY }));
+        sessionStorage.setItem(RESTORE_KEY, JSON.stringify({ url: location.href, shown, y: window.scrollY, seed: randomSeed }));
       } catch (err) { /* 保存できなくても移動はできる */ }
       return;
     }
@@ -580,9 +626,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.form.reset();
     setComposer('', false);
     [...selected.keys()].forEach((k) => toggleInstrument(k, false));
-    els.sort.value = 'reading';
+    sortChosen = false;
     els.order.value = 'asc';
-    updateOrderLabels();
     update();
   });
 
