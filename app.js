@@ -189,7 +189,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       opt.appendChild(el('span', 'combo-count', `${c.count}曲`));
       list.appendChild(opt);
     });
-    setActiveOption(composerOptions.length && toKana(text) ? 0 : -1);
+    // 最初はどの候補も選ばない（Enter で決まるのは ↑↓ で選んだときだけ）
+    setActiveOption(-1);
   }
 
   function setActiveOption(i) {
@@ -238,7 +239,14 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   });
   els.composerInput.addEventListener('focus', openComposerList);
   els.composerInput.addEventListener('blur', closeComposerList);
+  // 日本語入力の変換中・変換を確定した直後のキー操作は、候補の操作として扱わない
+  //   isComposing：Chrome・Firefox など／keyCode 229：Safari など（確定の Enter が変換後に届く）
+  let compositionEndedAt = 0;
+  els.composerInput.addEventListener('compositionend', () => { compositionEndedAt = Date.now(); });
+  const isImeKey = (e) => e.isComposing || e.keyCode === 229 || Date.now() - compositionEndedAt < 50;
+
   els.composerInput.addEventListener('keydown', (e) => {
+    if (isImeKey(e)) return;
     const n = composerOptions.length;
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
