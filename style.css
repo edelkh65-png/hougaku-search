@@ -538,6 +538,7 @@ input[readonly] { background: var(--surface); color: var(--muted); }
 }
 .instrument-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 .instrument-table td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.instrument-table td:first-child { white-space: nowrap; }
 .instrument-table td.notation { color: var(--muted); }
 .flag {
   display: inline-block;

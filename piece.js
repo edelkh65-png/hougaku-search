@@ -61,7 +61,7 @@
       ['編曲者', piece.arranger],
       ['分類', piece.category ? link(piece.category, searchUrl({ category: piece.category })) : ''],
       ['作曲年', year && `${year}年`],
-      ['奏者の人数', players ? `${players}人` : (piece.instruments.length ? '不明（人数の記載がない楽器があります）' : '')],
+      ['パート数', players ? `${players}パート` : (piece.instruments.length ? '不明（パート数の記載がない楽器があります）' : '')],
     ].filter(([, value]) => value);
     const dl = el('dl', 'detail-info');
     rows.forEach(([label, value]) => {
@@ -79,7 +79,7 @@
       const wrap = el('div', 'table-wrap');
       const table = el('table', 'instrument-table');
       const head = el('tr');
-      ['楽器', '人数', '', '表記'].forEach((h) => head.appendChild(el('th', '', h)));
+      ['楽器', 'パート数', '', '表記'].forEach((h) => head.appendChild(el('th', '', h)));
       table.appendChild(el('thead')).appendChild(head);
       const body = el('tbody');
       piece.instruments.forEach((entry) => {
@@ -88,7 +88,7 @@
         const name = el('td');
         name.appendChild(link(inst.label, searchUrl({ inst: entry.key })));
         tr.appendChild(name);
-        tr.appendChild(el('td', 'num', entry.parts ? `${entry.parts}人` : '—'));
+        tr.appendChild(el('td', 'num', entry.parts ? `${entry.parts}パート` : '—'));
         const flags = el('td');
         if (entry.solo) flags.appendChild(el('span', 'flag flag-solo', '独奏'));
         if (entry.optional) flags.appendChild(el('span', 'flag', '省略可'));
