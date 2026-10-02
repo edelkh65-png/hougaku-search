@@ -681,6 +681,8 @@ input[readonly] { background: var(--surface); color: var(--muted); }
 .instrument-table td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .instrument-table td:first-child { white-space: nowrap; }
 .instrument-table td.notation { color: var(--muted); }
+/* 独奏とそれ以外に分けた同じ楽器の2行は、間の罫線を点線にしてひとまとまりに見せる */
+.instrument-table tr.is-solo td { border-bottom-style: dashed; }
 .flag {
   display: inline-block;
   margin: 0 4px 2px 0;

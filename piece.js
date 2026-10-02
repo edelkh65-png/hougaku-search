@@ -58,6 +58,30 @@
     status.hidden = false;
   }
 
+  // 「箏 独+3」のように独奏とそれ以外のパートをまとめた行は、表示のときに2行に分ける
+  //   独+3 → 独奏 1パート ＋ 3パート、独2+2 → 独奏 2パート ＋ 2パート、独+n・独+合奏 → 独奏 1パート ＋ パート数不明
+  //   かっこ書き：独(Sop.)+3 の (Sop.) は独奏の行、独+1(AB) の (AB) は独奏以外の行、(各AB) は両方の行に付ける
+  const SOLO_PATTERN = /独(\d*)(?:[(（]([^)）]*)[)）])?\+(\d+|[nｎ]|合奏)(?:[(（]([^)）]*)[)）])?\s*$/;
+  function splitSolo(entry) {
+    const m = entry.solo && entry.notation.match(SOLO_PATTERN);
+    if (!m) return [entry];
+    const soloParts = m[1] ? Number(m[1]) : 1;
+    const restParts = /^\d+$/.test(m[3]) ? Number(m[3]) : null;
+    // パート数の合計がデータと合わないときは分けない
+    if (entry.parts && restParts !== null && soloParts + restParts !== entry.parts) return [entry];
+    const trailing = m[4] || '';
+    const both = trailing.startsWith('各');
+    return [
+      Object.assign({}, entry, { parts: soloParts, notation: m[2] || (both ? trailing.slice(1) : ''), group: 'solo' }),
+      Object.assign({}, entry, {
+        parts: restParts,
+        solo: false,
+        notation: [m[3] === '合奏' ? '合奏' : '', both ? trailing.slice(1) : trailing].filter(Boolean).join(' '),
+        group: 'rest',
+      }),
+    ];
+  }
+
   function render(INSTRUMENTS, piece) {
     document.title = `${piece.title} | 楽曲検索`;
     status.hidden = true;
@@ -117,9 +141,9 @@
       ['楽器', 'パート数', '', '表記'].forEach((h) => head.appendChild(el('th', '', h)));
       table.appendChild(el('thead')).appendChild(head);
       const body = el('tbody');
-      piece.instruments.forEach((entry) => {
+      piece.instruments.flatMap(splitSolo).forEach((entry) => {
         const inst = INSTRUMENTS[entry.key] || { label: entry.key };
-        const tr = el('tr');
+        const tr = el('tr', entry.group ? `is-${entry.group}` : '');
         const name = el('td');
         name.appendChild(link(inst.label, searchUrl({ inst: entry.key })));
         tr.appendChild(name);
