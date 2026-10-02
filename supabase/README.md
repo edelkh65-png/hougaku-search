@@ -43,16 +43,31 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 
 1. SQL Editor で `admin.sql` の中身をすべて貼り付けて **Run** を押します。
    - `schema.sql` を実行し直したときは、`admin.sql` も実行し直してください。
-2. 左メニューの **Authentication → Users** で「Add user」→「Create new user」を選び、登録担当者のメールアドレスとパスワードを入力します。
-   「Auto Confirm User」にチェックを入れてください。
-3. SQL Editor で次を実行し、そのユーザーを登録担当者にします（メールアドレスは書き換えてください）。
+2. **Authentication → URL Configuration** を開き、次のように設定して保存します（招待・パスワード再設定のメールのリンク先になります）。
+   - **Site URL**：`https://edelkh65-png.github.io/test-page/music/admin.html`
+   - **Redirect URLs**：「Add URL」で同じ `https://edelkh65-png.github.io/test-page/music/admin.html` を追加
+   - これを設定しないと、メールのリンクが `http://localhost:3000` に飛んでしまい開けません。
+3. 登録担当者のアカウントを作ります。次のどちらかの方法で行います。
+   - **招待メールを送る（おすすめ）**：**Authentication → Users** で「Add user」→「Send invitation」を選び、メールアドレスを入力します。
+     受け取った人がメールの「Accept the invite」を押すと登録ページが開き、自分でパスワードを決められます。
+   - **直接作る**：「Add user」→「Create new user」でメールアドレスとパスワードを入力し、「Auto Confirm User」にチェックを入れます。パスワードは本人に伝えてください。
+4. SQL Editor で次を実行し、そのユーザーを登録担当者にします（メールアドレスは書き換えてください）。
+   招待の場合は、招待メールを送った直後（相手が受け取る前）に実行して大丈夫です。
 
    ```sql
    insert into editors (user_id) select id from auth.users where email = 'you@example.com' on conflict do nothing;
    ```
 
-4. おすすめ：**Authentication → Sign In / Providers** で「Allow new users to sign up」をオフにします。
-   （オンのままでも、editors に入っていない人は登録・削除できません）
+5. おすすめ：**Authentication → Sign In / Providers** で「Allow new users to sign up」をオフにします。
+   （オンのままでも、editors に入っていない人は登録・削除できません。オフにしても招待はできます）
+
+### 招待・パスワードについて
+
+- 招待メールのリンクの有効期限は24時間で、1回しか使えません。期限切れや使用済みのリンクを開くと、登録ページに「有効期限が切れている」と表示されます。その場合は次のどちらかで送り直してください。
+  - まだ一度もリンクを開いていない人：「Add user」→「Send invitation」で同じアドレスにもう一度招待を送る
+  - リンクを開いたがパスワードを決められなかった人（「already registered」などと表示されて招待できない場合）：**Authentication → Users** でそのユーザーの「…」→「Send password recovery」を送るか、本人に登録ページの「パスワードを忘れた場合」から手続きしてもらう
+- パスワードを忘れたときは、登録ページのログイン欄の「パスワードを忘れた場合」から再設定のメールを送れます。メールのリンクを開くと、新しいパスワードを決める画面になります。
+- Supabase 標準のメール送信には回数の上限（1時間に数通程度）があります。続けて送ると「送信回数の上限」と表示されるので、時間をおいてください。
 
 `admin.sql` を更新したとき（例：作曲者のよみがな `composers.reading` への対応）は、SQL Editor で `admin.sql` をもう一度実行してください。何度実行しても大丈夫です。
 
@@ -65,6 +80,7 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 - 作曲者のよみがな：登録済みの作曲者は自動で表示（変更不可）。新しい作曲者や、よみがな未登録の作曲者は入力必須（カタカナで入力してもひらがなに変換）
 - 同じ曲名の曲がすでにある場合は確認を表示
 - 最近登録した10曲の確認と削除
+- 招待メールからのパスワード設定、パスワードを忘れたときの再設定
 
 ## 5. 楽曲を追加・編集する（その他の方法）
 
@@ -120,6 +136,6 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 
 ## 画面のファイルを更新したとき
 
-`music/index.html` と `music/admin.html` では、CSS・JS を `style.css?v=20260930` のように版番号付きで読み込んでいます。
-`style.css` や `*.js` を変更したら、この `v=` の値（日付など）を両方の HTML で新しい値に書き換えてください。
+`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261002-11` のように版番号付きで読み込んでいます。
+`style.css` や `*.js` を変更したら、この `v=` の値（日付など）を両方の HTML で新しい値に書き換えてください（3つの HTML すべて）。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。

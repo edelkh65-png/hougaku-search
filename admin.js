@@ -10,6 +10,15 @@
     loginSection: $('login-section'),
     loginForm: $('login-form'),
     loginError: $('login-error'),
+    showRecover: $('show-recover'),
+    recoverSection: $('recover-section'),
+    recoverForm: $('recover-form'),
+    recoverError: $('recover-error'),
+    backToLogin: $('back-to-login'),
+    passwordSection: $('password-section'),
+    passwordLead: $('password-lead'),
+    passwordForm: $('password-form'),
+    passwordError: $('password-error'),
     editorSection: $('editor-section'),
     accountEmail: $('account-email'),
     logout: $('logout'),
@@ -142,19 +151,34 @@
   }
 
   // ---- 画面の切り替え ----
+  function showSection(section) {
+    [els.loginSection, els.recoverSection, els.passwordSection, els.editorSection].forEach((s) => {
+      s.hidden = s !== section;
+    });
+  }
+
   function showLogin(message) {
-    els.editorSection.hidden = true;
-    els.loginSection.hidden = false;
+    showSection(els.loginSection);
     showError(els.loginError, message || '');
   }
 
+  function showPasswordForm(kind) {
+    els.passwordLead.textContent = kind === 'invite'
+      ? '登録担当者として招待されました。パスワードを決めてください。次回からはメールアドレスとこのパスワードでログインします。'
+      : '新しいパスワードを決めてください。次回からはメールアドレスとこのパスワードでログインします。';
+    els.passwordForm.elements.username.value = session.email || '';
+    showError(els.passwordError, '');
+    showSection(els.passwordSection);
+    els.passwordForm.elements.password.focus();
+  }
+
   async function showEditor() {
-    els.loginSection.hidden = true;
+    showSection(null);
     els.accountEmail.textContent = session.email ? `${session.email} でログイン中` : 'ログイン中';
 
     const editor = await api('editors?select=user_id');
     if (!editor.length) {
-      els.editorSection.hidden = false;
+      showSection(els.editorSection);
       els.form.hidden = true;
       els.recent.closest('.panel').hidden = true;
       showNotice('このアカウントには登録の権限がありません。管理者に登録担当者（editors）への追加を依頼してください。', 'error');
@@ -174,7 +198,7 @@
 
     els.form.hidden = false;
     els.recent.closest('.panel').hidden = false;
-    els.editorSection.hidden = false;
+    showSection(els.editorSection);
     if (!els.rows.children.length) addInstrumentRow();
     loadRecent();
   }
@@ -478,15 +502,127 @@
     showLogin();
   });
 
+  // ---- パスワードの再設定（メールでリンクを送る） ----
+  els.showRecover.addEventListener('click', () => {
+    els.recoverForm.elements.email.value = els.loginForm.elements.email.value.trim();
+    showError(els.recoverError, '');
+    els.notice.hidden = true;
+    showSection(els.recoverSection);
+    els.recoverForm.elements.email.focus();
+  });
+  els.backToLogin.addEventListener('click', () => showLogin());
+
+  els.recoverForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = els.recoverForm.querySelector('button[type="submit"]');
+    const email = els.recoverForm.elements.email.value.trim();
+    button.disabled = true;
+    showError(els.recoverError, '');
+    try {
+      // メールのリンクからこのページに戻ってくるようにする（Supabase の Redirect URLs に登録が必要）
+      const redirect = location.origin + location.pathname;
+      await send(`/auth/v1/recover?redirect_to=${encodeURIComponent(redirect)}`, { method: 'POST', body: { email } });
+      els.loginForm.elements.email.value = email;
+      showLogin();
+      showNotice(`${email} にパスワード再設定のメールを送りました（登録担当者のアドレスの場合のみ届きます）。メールのリンクを開いて、新しいパスワードを設定してください。`, 'success');
+    } catch (err) {
+      showError(els.recoverError, err.status === 429
+        ? 'メールの送信回数の上限に達しました。しばらく時間をおいてから、もう一度お試しください。'
+        : `メールを送れませんでした：${err.message}`);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  // ---- パスワードの設定（招待・再設定のリンクから開いたとき） ----
+  els.passwordForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const f = els.passwordForm.elements;
+    const button = els.passwordForm.querySelector('button[type="submit"]');
+    showError(els.passwordError, '');
+    if (f.password.value.length < 6) {
+      showError(els.passwordError, 'パスワードは6文字以上にしてください。');
+      f.password.focus();
+      return;
+    }
+    if (f.password.value !== f.confirm.value) {
+      showError(els.passwordError, '確認のパスワードが一致しません。');
+      f.confirm.focus();
+      return;
+    }
+    button.disabled = true;
+    try {
+      await send('/auth/v1/user', { method: 'PUT', body: { password: f.password.value }, token: await accessToken() });
+      saveSession(Object.assign({}, session, { mustSetPassword: false }));
+      els.passwordForm.reset();
+      showNotice('パスワードを設定しました。次回からはメールアドレスとこのパスワードでログインできます。', 'success');
+      await showEditor();
+    } catch (err) {
+      if (err.status === 401) {
+        saveSession(null);
+        showLogin('リンクの有効期限が切れました。もう一度、招待またはパスワード再設定のメールを送ってもらってください。');
+        return;
+      }
+      const code = err.data && err.data.error_code;
+      showError(els.passwordError,
+        code === 'same_password' ? '今までと同じパスワードは使えません。別のパスワードにしてください。'
+          : code === 'weak_password' ? 'パスワードが簡単すぎます。もっと長いパスワードにしてください。'
+            : `パスワードを設定できませんでした：${err.message}`);
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  // 招待・パスワード再設定のメールのリンクから来たときは、URL の # 以降にログイン情報かエラーが付いている
+  //   成功：#access_token=…&refresh_token=…&expires_in=3600&type=invite
+  //   失敗：#error=access_denied&error_code=otp_expired&error_description=…
+  function readAuthRedirect() {
+    const params = new URLSearchParams(location.hash.replace(/^#/, ''));
+    if (!params.has('access_token') && !params.has('error') && !params.has('error_code')) return null;
+    // ログイン情報をアドレスバーや履歴に残さない
+    history.replaceState(null, '', location.pathname + location.search);
+    return params;
+  }
+
+  async function acceptAuthRedirect(params) {
+    if (!params.get('access_token')) {
+      const expired = params.get('error_code') === 'otp_expired';
+      showLogin(expired
+        ? 'メールのリンクの有効期限が切れているか、すでに使われています。招待の場合は管理者に招待メールの再送を依頼してください。パスワード再設定の場合は「パスワードを忘れた場合」からもう一度メールを送ってください。'
+        : `メールのリンクを確認できませんでした：${params.get('error_description') || params.get('error')}`);
+      return;
+    }
+    const type = params.get('type');
+    saveSession(Object.assign(toSession({
+      access_token: params.get('access_token'),
+      refresh_token: params.get('refresh_token'),
+      expires_at: Number(params.get('expires_at')) || 0,
+      expires_in: Number(params.get('expires_in')) || 3600,
+    }), { mustSetPassword: type === 'invite' || type === 'recovery' }));
+    try {
+      const user = await send('/auth/v1/user', { token: session.access_token });
+      saveSession(Object.assign({}, session, { email: user.email }));
+    } catch (e) { /* メールアドレスが分からなくても続けられる */ }
+    if (session.mustSetPassword) showPasswordForm(type);
+    else await showEditor();
+  }
+
   // ---- 起動 ----
   if (!config.url || !config.key) {
     showNotice('Supabase の接続設定（config.js）がないため、登録ページは使えません。', 'error');
     return;
   }
-  if (session) {
-    showEditor().catch((e) => {
-      if (e.status !== 401) showNotice(`読み込めませんでした：${e.message}`, 'error');
-    });
+  const onStartError = (e) => {
+    if (e.status !== 401) showNotice(`読み込めませんでした：${e.message}`, 'error');
+  };
+  const redirect = readAuthRedirect();
+  if (redirect) {
+    acceptAuthRedirect(redirect).catch(onStartError);
+  } else if (session && session.mustSetPassword) {
+    // パスワードを設定する前にページを再読み込みした
+    showPasswordForm();
+  } else if (session) {
+    showEditor().catch(onStartError);
   } else {
     showLogin();
   }

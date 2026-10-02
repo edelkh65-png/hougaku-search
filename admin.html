@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20261002-10">
+<link rel="stylesheet" href="style.css?v=20261002-11">
 </head>
 <body>
 
@@ -38,7 +38,48 @@
         <input type="password" id="password" name="password" autocomplete="current-password" required>
       </div>
       <p id="login-error" class="error" role="alert" hidden></p>
-      <button type="submit" class="primary">ログイン</button>
+      <div class="actions actions-center">
+        <button type="submit" class="primary">ログイン</button>
+        <button type="button" id="show-recover" class="link-button">パスワードを忘れた場合</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- パスワード再設定メールの送信 -->
+  <section id="recover-section" class="panel" hidden>
+    <h2>パスワードの再設定</h2>
+    <p class="hint">登録担当者のメールアドレスを入力してください。パスワードを設定し直すためのリンクをメールで送ります。</p>
+    <form id="recover-form" class="stack">
+      <div class="field">
+        <label for="recover-email">メールアドレス</label>
+        <input type="email" id="recover-email" name="email" autocomplete="username" required>
+      </div>
+      <p id="recover-error" class="error" role="alert" hidden></p>
+      <div class="actions actions-center">
+        <button type="submit" class="primary">メールを送る</button>
+        <button type="button" id="back-to-login" class="link-button">ログインに戻る</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- パスワードの設定（招待・再設定のリンクから開いたとき） -->
+  <section id="password-section" class="panel" hidden>
+    <h2>パスワードの設定</h2>
+    <p class="hint" id="password-lead">新しいパスワードを決めてください。次回からはメールアドレスとこのパスワードでログインします。</p>
+    <form id="password-form" class="stack">
+      <input type="email" id="password-username" name="username" autocomplete="username" hidden>
+      <div class="field">
+        <label for="new-password">新しいパスワード <span class="hint">（6文字以上）</span></label>
+        <input type="password" id="new-password" name="password" autocomplete="new-password" minlength="6" required>
+      </div>
+      <div class="field">
+        <label for="new-password-confirm">確認のためもう一度</label>
+        <input type="password" id="new-password-confirm" name="confirm" autocomplete="new-password" minlength="6" required>
+      </div>
+      <p id="password-error" class="error" role="alert" hidden></p>
+      <div class="actions">
+        <button type="submit" class="primary">パスワードを設定する</button>
+      </div>
     </form>
   </section>
 
@@ -152,9 +193,9 @@
   </div>
 </template>
 
-<script src="config.js?v=20261002-10"></script>
-<script src="constants.js?v=20261002-10"></script>
-<script src="combo.js?v=20261002-10"></script>
-<script src="admin.js?v=20261002-10"></script>
+<script src="config.js?v=20261002-11"></script>
+<script src="constants.js?v=20261002-11"></script>
+<script src="combo.js?v=20261002-11"></script>
+<script src="admin.js?v=20261002-11"></script>
 </body>
 </html>

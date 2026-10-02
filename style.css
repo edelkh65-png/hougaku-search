@@ -499,6 +499,7 @@ input[readonly] { background: var(--surface); color: var(--muted); }
 .account { display: flex; justify-content: flex-end; align-items: center; gap: 12px; font-size: 0.88rem; color: var(--muted); }
 
 .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions-center { align-items: center; gap: 16px; }
 .primary, .secondary, .danger-button {
   padding: 9px 18px;
   border-radius: var(--radius);
