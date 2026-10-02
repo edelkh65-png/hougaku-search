@@ -47,6 +47,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     min: document.getElementById('min'),
     max: document.getElementById('max'),
     sort: document.getElementById('sort'),
+    order: document.getElementById('order'),
     perPage: document.getElementById('per-page'),
     reset: document.getElementById('reset-button'),
     list: document.getElementById('list'),
@@ -123,6 +124,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       min: parseInt(els.min.value, 10) || null,
       max: parseInt(els.max.value, 10) || null,
       sort: els.sort.value,
+      order: els.order.value,
     };
   }
 
@@ -163,12 +165,25 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   }
   const byComposer = (a, b) => collator.compare(composerSortKey(a.composer, a.composerReading), composerSortKey(b.composer, b.composerReading))
     || collator.compare(a.composer, b.composer);
+  // 並び順ごとの比較（dir：1 は昇順、-1 は降順）。値のない曲はどちらの向きでも最後
   const sorters = {
-    reading: byReading,
-    year: (a, b) => last(a.year) - last(b.year) || a.year - b.year || byReading(a, b),
-    composer: (a, b) => last(a.composer) - last(b.composer) || byComposer(a, b) || byReading(a, b),
-    players: (a, b) => last(a.players) - last(b.players) || a.players - b.players || byReading(a, b),
+    reading: (dir) => (a, b) => dir * byReading(a, b),
+    year: (dir) => (a, b) => last(a.year) - last(b.year) || dir * (a.year - b.year) || byReading(a, b),
+    composer: (dir) => (a, b) => last(a.composer) - last(b.composer) || dir * byComposer(a, b) || byReading(a, b),
+    players: (dir) => (a, b) => last(a.players) - last(b.players) || dir * (a.players - b.players) || byReading(a, b),
   };
+  // 昇順・降順の表示名（並び順に合わせて言い換える）
+  const ORDER_LABELS = {
+    reading: ['あ→ん', 'ん→あ'],
+    year: ['古い順', '新しい順'],
+    composer: ['あ→ん', 'ん→あ'],
+    players: ['少ない順', '多い順'],
+  };
+  function updateOrderLabels() {
+    const [asc, desc] = ORDER_LABELS[els.sort.value];
+    els.order.options[0].textContent = asc;
+    els.order.options[1].textContent = desc;
+  }
 
   // ---- 表示 ----
   function el(tag, className, text) {
@@ -251,6 +266,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (state.min) params.set('min', state.min);
     if (state.max) params.set('max', state.max);
     if (state.sort !== 'reading') params.set('sort', state.sort);
+    if (state.order === 'desc') params.set('order', 'desc');
     if (pageSize() !== DEFAULT_PAGE_SIZE) params.set('per', pageSize());
     const query = params.toString();
     try {
@@ -268,6 +284,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.min.value = params.get('min') || '';
     els.max.value = params.get('max') || '';
     if (sorters[params.get('sort')]) els.sort.value = params.get('sort');
+    els.order.value = params.get('order') === 'desc' ? 'desc' : 'asc';
+    updateOrderLabels();
     // 詳細検索の条件が URL に入っていれば、最初から開いておく
     if (['inst', 'category', 'composer', 'min', 'max'].some((k) => params.get(k))) els.advanced.open = true;
 
@@ -289,7 +307,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   function update() {
     const state = readState();
     showAdvancedCount(state);
-    results = pieces.filter((p) => matches(p, state)).sort(sorters[state.sort]);
+    results = pieces.filter((p) => matches(p, state)).sort(sorters[state.sort](state.order === 'desc' ? -1 : 1));
     shown = 0;
     els.list.replaceChildren();
     showMore();
@@ -304,7 +322,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   els.form.addEventListener('input', update);
   els.form.addEventListener('submit', (e) => { e.preventDefault(); update(); });
-  els.sort.addEventListener('change', update);
+  els.sort.addEventListener('change', () => { updateOrderLabels(); update(); });
+  els.order.addEventListener('change', update);
   els.perPage.addEventListener('change', () => {
     try { localStorage.setItem(PER_PAGE_KEY, els.perPage.value); } catch (e) { /* 保存できなくても表示は切り替わる */ }
     update();
@@ -337,6 +356,8 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.form.reset();
     [...selected].forEach((k) => toggleInstrument(k, false));
     els.sort.value = 'reading';
+    els.order.value = 'asc';
+    updateOrderLabels();
     update();
   });
 
