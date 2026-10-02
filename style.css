@@ -230,6 +230,29 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 }
 .chip-count { font-size: 0.72rem; opacity: 0.7; }
 
+/* 選んだ楽器はボタンの中に −・数・＋ を出す */
+.chip-wrap { display: inline-flex; align-items: center; border-radius: 999px; }
+.chip-wrap.is-on { background: var(--accent); color: var(--accent-text); padding-right: 4px; }
+.chip-wrap.is-on .chip { border-color: transparent; padding-right: 4px; }
+.chip-wrap.is-on .chip-count { display: none; }
+.stepper { display: inline-flex; align-items: center; gap: 3px; }
+.step {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent-text) 55%, transparent);
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.step:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-text) 18%, transparent); }
+.step:disabled { opacity: 0.35; cursor: default; }
+.step-value { min-width: 2.2em; text-align: center; font-weight: 700; font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.step-value.any { font-weight: 400; font-size: 0.72rem; opacity: 0.85; }
+
 .match-mode {
   margin-top: 12px;
   display: grid;
@@ -258,6 +281,19 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
   margin-bottom: 12px;
 }
 #count { margin: 0; font-weight: 700; }
+.count-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; }
+.inst-summary {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  overflow-wrap: anywhere;
+}
+.hint + #instrument-groups { margin-top: 10px; }
+.count-mode { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.count-mode-label { font-size: 0.8rem; font-weight: 700; }
 .results-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; }
 .sort { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 .sort select { width: auto; }

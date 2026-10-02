@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20261002-4">
+<link rel="stylesheet" href="style.css?v=20261002-5">
 </head>
 <body>
 
@@ -36,10 +36,16 @@
         <div class="advanced-body">
           <fieldset class="field">
             <legend>楽器</legend>
+            <p class="hint">楽器を押して選び、＋・− でパート数を指定できます（指定なしならパート数を問いません）</p>
             <div id="instrument-groups"></div>
             <div class="match-mode" role="radiogroup" aria-label="楽器の一致方法">
               <label><input type="radio" name="mode" value="include" checked> 選んだ楽器をすべて含む</label>
               <label><input type="radio" name="mode" value="exact"> 選んだ楽器だけの編成</label>
+            </div>
+            <div class="match-mode count-mode" id="count-mode" role="radiogroup" aria-labelledby="count-mode-label" hidden>
+              <span class="count-mode-label" id="count-mode-label">指定したパート数</span>
+              <label><input type="radio" name="cmp" value="eq" checked> ちょうど</label>
+              <label><input type="radio" name="cmp" value="gte"> 以上</label>
             </div>
           </fieldset>
 
@@ -76,7 +82,10 @@
 
   <main class="results">
     <div class="results-bar">
-      <p id="count" aria-live="polite"></p>
+      <div class="count-wrap">
+        <p id="count" aria-live="polite"></p>
+        <span id="inst-summary" class="inst-summary" hidden></span>
+      </div>
       <div class="results-controls">
         <label class="sort">
           並び順
@@ -113,9 +122,9 @@
   </p>
 </footer>
 
-<script src="config.js?v=20261002-4"></script>
-<script src="constants.js?v=20261002-4"></script>
-<script src="db.js?v=20261002-4"></script>
-<script src="app.js?v=20261002-4"></script>
+<script src="config.js?v=20261002-5"></script>
+<script src="constants.js?v=20261002-5"></script>
+<script src="db.js?v=20261002-5"></script>
+<script src="app.js?v=20261002-5"></script>
 </body>
 </html>

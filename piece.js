@@ -117,10 +117,16 @@
     related.appendChild(el('h2', '', '関連する曲を探す'));
     const list = el('ul', 'related');
     if (piece.composer) list.appendChild(el('li')).appendChild(link(`${piece.composer} の曲`, searchUrl({ composer: piece.composer })));
-    const keys = [...new Set(piece.instruments.map((i) => i.key))];
-    if (keys.length) {
-      const labels = keys.map((k) => (INSTRUMENTS[k] || { label: k }).label).join('・');
-      list.appendChild(el('li')).appendChild(link(`同じ編成の曲（${labels}）`, searchUrl({ inst: keys.join(','), mode: 'exact' })));
+    // 楽器ごとのパート数（分かる楽器は数も条件にする）
+    const parts = new Map();
+    piece.instruments.forEach((i) => {
+      const sum = parts.has(i.key) ? parts.get(i.key) : 0;
+      parts.set(i.key, sum === null || !i.parts ? null : sum + i.parts);
+    });
+    if (parts.size) {
+      const labels = [...parts].map(([k, n]) => (INSTRUMENTS[k] || { label: k }).label + (n || '')).join('・');
+      const inst = [...parts].map(([k, n]) => (n ? `${k}:${n}` : k)).join(',');
+      list.appendChild(el('li')).appendChild(link(`同じ編成の曲（${labels}）`, searchUrl({ inst, mode: 'exact' })));
     }
     if (list.children.length) {
       related.appendChild(list);

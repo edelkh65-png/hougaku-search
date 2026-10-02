@@ -30,6 +30,12 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       instruments,
       keys: new Set(instruments.map((i) => i.key)),
       players: known ? instruments.reduce((sum, i) => sum + i.parts, 0) : null,
+      partsByKey: new Map(),
+    });
+    // 楽器ごとのパート数の合計（独奏とセクションなど同じ楽器が複数あれば足す。不明が含まれれば null）
+    instruments.forEach((i) => {
+      const sum = piece.partsByKey.has(i.key) ? piece.partsByKey.get(i.key) : 0;
+      piece.partsByKey.set(i.key, sum === null || !i.parts ? null : sum + i.parts);
     });
     const instrumentWords = instruments.flatMap((i) =>
       [INSTRUMENTS[i.key].label, ...INSTRUMENTS[i.key].aliases, i.notation]);
@@ -56,11 +62,15 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     empty: document.getElementById('empty'),
     advanced: document.getElementById('advanced'),
     advancedCount: document.getElementById('advanced-count'),
+    countMode: document.getElementById('count-mode'),
+    instSummary: document.getElementById('inst-summary'),
   };
 
   const PER_PAGE_KEY = 'music-search-per-page';
   const RESTORE_KEY = 'music-search-restore';
-  const selected = new Set();
+  const MAX_PARTS = 99;
+  // 選んだ楽器 → 指定したパート数（null は指定なし）
+  const selected = new Map();
   let results = [];
   let shown = 0;
 
@@ -83,12 +93,29 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
       const chips = el('div', 'chips');
       keys.forEach((key) => {
-        const btn = el('button', 'chip', INSTRUMENTS[key].label);
+        const label = INSTRUMENTS[key].label;
+        const wrap = el('span', 'chip-wrap');
+        wrap.dataset.key = key;
+        const btn = el('button', 'chip', label);
         btn.type = 'button';
         btn.dataset.key = key;
         btn.setAttribute('aria-pressed', 'false');
         btn.appendChild(el('span', 'chip-count', String(usage.get(key))));
-        chips.appendChild(btn);
+        const stepper = el('span', 'stepper');
+        stepper.hidden = true;
+        const minus = el('button', 'step', '−');
+        minus.type = 'button';
+        minus.dataset.step = '-1';
+        minus.setAttribute('aria-label', `${label}のパート数を減らす`);
+        const value = el('span', 'step-value');
+        value.setAttribute('aria-live', 'polite');
+        const plus = el('button', 'step', '＋');
+        plus.type = 'button';
+        plus.dataset.step = '1';
+        plus.setAttribute('aria-label', `${label}のパート数を増やす`);
+        stepper.append(minus, value, plus);
+        wrap.append(btn, stepper);
+        chips.appendChild(wrap);
       });
       group.appendChild(chips);
       els.groups.appendChild(group);
@@ -107,11 +134,44 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     fillSelect(els.composer, countBy((p) => p.composer), '記載なし', (name) => composerSortKey(name, composerReadings.get(name)));
   }
 
-  function toggleInstrument(key, force) {
+  // count を渡すとパート数も設定する（省略時は、選択済みならそのまま、新しく選ぶなら指定なし）
+  function toggleInstrument(key, force, count) {
     const on = force === undefined ? !selected.has(key) : force;
-    if (on) selected.add(key); else selected.delete(key);
-    const chip = els.groups.querySelector(`.chip[data-key="${key}"]`);
-    if (chip) chip.setAttribute('aria-pressed', String(on));
+    if (!on) selected.delete(key);
+    else if (count !== undefined || !selected.has(key)) selected.set(key, count === undefined ? null : count);
+    renderChip(key);
+  }
+
+  // パート数を1つ増減する。指定なし → 1 → 2 …、1 から減らすと指定なし
+  function stepCount(key, delta) {
+    const current = selected.get(key);
+    let next = (current || 0) + delta;
+    if (next < 1) next = null;
+    if (next > MAX_PARTS) next = MAX_PARTS;
+    selected.set(key, next);
+    renderChip(key);
+  }
+
+  function renderChip(key) {
+    const wrap = els.groups.querySelector(`.chip-wrap[data-key="${key}"]`);
+    if (!wrap) return;
+    const on = selected.has(key);
+    const count = on ? selected.get(key) : null;
+    wrap.classList.toggle('is-on', on);
+    wrap.querySelector('.chip').setAttribute('aria-pressed', String(on));
+    wrap.querySelector('.stepper').hidden = !on;
+    const value = wrap.querySelector('.step-value');
+    value.textContent = count ? String(count) : '指定なし';
+    value.classList.toggle('any', !count);
+    wrap.querySelector('[data-step="-1"]').disabled = !count;
+    wrap.querySelector('[data-step="1"]').disabled = count === MAX_PARTS;
+  }
+
+  // 「箏2・十七絃・尺八1」のような、選んだ楽器の要約
+  function instrumentSummary(state) {
+    const suffix = state.cmp === 'gte' ? '以上' : '';
+    const text = [...selected].map(([key, count]) => INSTRUMENTS[key].label + (count ? `${count}${suffix}` : '')).join('・');
+    return state.mode === 'exact' ? `${text} だけ` : text;
   }
 
   // ---- 検索 ----
@@ -119,6 +179,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     return {
       q: els.q.value.trim(),
       mode: els.form.elements.mode.value,
+      cmp: els.form.elements.cmp.value,
       category: els.category.value,
       composer: els.composer.value,
       min: parseInt(els.min.value, 10) || null,
@@ -140,7 +201,14 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     }
 
     if (selected.size) {
-      for (const key of selected) if (!piece.keys.has(key)) return false;
+      for (const [key, count] of selected) {
+        if (!piece.keys.has(key)) return false;
+        if (count === null) continue;
+        // パート数を指定したときは、パート数が不明な楽器は当てはまらない扱い
+        const parts = piece.partsByKey.get(key);
+        if (parts === null) return false;
+        if (state.cmp === 'gte' ? parts < count : parts !== count) return false;
+      }
       if (state.mode === 'exact' && piece.keys.size !== selected.size) return false;
     }
 
@@ -259,7 +327,9 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   function writeUrl(state) {
     const params = new URLSearchParams();
     if (state.q) params.set('q', state.q);
-    if (selected.size) params.set('inst', [...selected].join(','));
+    // inst=koto:2,shakuhachi:1,jushichigen（数のない楽器は指定なし）
+    if (selected.size) params.set('inst', [...selected].map(([k, c]) => (c ? `${k}:${c}` : k)).join(','));
+    if (state.cmp === 'gte' && [...selected.values()].some(Boolean)) params.set('cmp', 'gte');
     if (state.mode !== 'include') params.set('mode', state.mode);
     if (state.category) params.set('category', state.category);
     if (state.composer) params.set('composer', state.composer);
@@ -277,7 +347,13 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   function readUrl() {
     const params = new URLSearchParams(location.search);
     els.q.value = params.get('q') || '';
-    (params.get('inst') || '').split(',').filter((k) => INSTRUMENTS[k]).forEach((k) => toggleInstrument(k, true));
+    (params.get('inst') || '').split(',').forEach((item) => {
+      const [key, n] = item.split(':');
+      if (!INSTRUMENTS[key]) return;
+      const count = parseInt(n, 10);
+      toggleInstrument(key, true, count > 0 ? Math.min(count, MAX_PARTS) : null);
+    });
+    if (params.get('cmp') === 'gte') els.form.elements.cmp.value = 'gte';
     if (params.get('mode') === 'exact') els.form.elements.mode.value = 'exact';
     els.category.value = params.get('category') || '';
     els.composer.value = params.get('composer') || '';
@@ -307,6 +383,10 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   function update() {
     const state = readState();
     showAdvancedCount(state);
+    // 「ちょうど／以上」は、パート数を指定したときだけ表示する
+    els.countMode.hidden = ![...selected.values()].some(Boolean);
+    els.instSummary.textContent = instrumentSummary(state);
+    els.instSummary.hidden = selected.size === 0;
     results = pieces.filter((p) => matches(p, state)).sort(sorters[state.sort](state.order === 'desc' ? -1 : 1));
     shown = 0;
     els.list.replaceChildren();
@@ -331,6 +411,12 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   els.more.addEventListener('click', showMore);
 
   els.groups.addEventListener('click', (e) => {
+    const step = e.target.closest('.step');
+    if (step) {
+      stepCount(step.closest('.chip-wrap').dataset.key, Number(step.dataset.step));
+      update();
+      return;
+    }
     const chip = e.target.closest('.chip');
     if (!chip) return;
     toggleInstrument(chip.dataset.key);
@@ -354,7 +440,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   els.reset.addEventListener('click', () => {
     els.form.reset();
-    [...selected].forEach((k) => toggleInstrument(k, false));
+    [...selected.keys()].forEach((k) => toggleInstrument(k, false));
     els.sort.value = 'reading';
     els.order.value = 'asc';
     updateOrderLabels();
