@@ -88,12 +88,13 @@
       { label: '作曲者', value: composer, note: piece.composerReading, wide: true },
       { label: '編曲者', value: piece.arranger, wide: true },
       { label: '分類', value: piece.category },
-      { label: '作曲年', value: year && withUnit(year, '年') },
+      { label: '作曲年', value: year ? withUnit(year, '年') : el('span', 'fact-none', '不明') },
       players
         ? { label: 'パート数', value: withUnit(String(players), 'パート') }
-        : { label: 'パート数', value: piece.instruments.length ? '不明' : '', note: 'パート数の記載がない楽器があります' },
+        : { label: 'パート数', value: piece.instruments.length ? el('span', 'fact-none', '不明') : '', note: 'パート数の記載がない楽器があります' },
     ].filter((f) => f.value);
-    const dl = el('dl', 'detail-facts');
+    // 編曲者がいるときは、1段目に作曲者・編曲者、2段目に残りの3つを並べる
+    const dl = el('dl', piece.arranger ? 'detail-facts has-arranger' : 'detail-facts');
     facts.forEach((f) => {
       const item = el('div', f.wide ? 'fact fact-wide' : 'fact');
       item.appendChild(el('dt', '', f.label));

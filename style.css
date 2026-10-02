@@ -620,6 +620,8 @@ input[readonly] { background: var(--surface); color: var(--muted); }
   border-radius: 6px;
 }
 .fact-wide { flex: 2 1 220px; }
+.has-arranger .fact { flex-basis: calc((100% - 20px) / 3); }
+.has-arranger .fact-wide { flex-basis: calc((100% - 10px) / 2); }
 .fact::before {
   content: "";
   position: absolute;
@@ -713,6 +715,7 @@ input[readonly] { background: var(--surface); color: var(--muted); }
   .detail-title { font-size: 1.6rem; }
   .detail-facts { gap: 8px; }
   .fact { flex-basis: calc((100% - 16px) / 3); padding: 12px; }
-  .fact-wide { flex-basis: 100%; }
+  .fact-wide, .has-arranger .fact-wide { flex-basis: 100%; }
+  .has-arranger .fact:not(.fact-wide) { flex-basis: calc((100% - 16px) / 3); }
   .fact::before { left: 12px; }
 }
