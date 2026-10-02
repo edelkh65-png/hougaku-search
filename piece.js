@@ -73,23 +73,35 @@
     if (piece.subtitle) article.appendChild(el('p', 'detail-subtitle', piece.subtitle));
     if (piece.reading) article.appendChild(el('p', 'detail-reading', piece.reading));
 
-    // 基本情報
+    // 基本情報（札のように並べる）
     const known = piece.instruments.length > 0 && piece.instruments.every((i) => i.parts);
     const players = known ? piece.instruments.reduce((sum, i) => sum + i.parts, 0) : null;
     const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
-    const rows = [
-      ['作曲者', piece.composer ? link(piece.composer, searchUrl({ composer: piece.composer })) : '記載なし'],
-      ['編曲者', piece.arranger],
-      ['分類', piece.category],
-      ['作曲年', year && `${year}年`],
-      ['パート数', players ? `${players}パート` : (piece.instruments.length ? '不明（パート数の記載がない楽器があります）' : '')],
-    ].filter(([, value]) => value);
-    const dl = el('dl', 'detail-info');
-    rows.forEach(([label, value]) => {
-      dl.appendChild(el('dt', '', label));
+    // 数字を大きく、単位を小さく
+    const withUnit = (value, unit) => {
+      const span = el('span', '', value);
+      span.appendChild(el('span', 'fact-unit', unit));
+      return span;
+    };
+    const composer = piece.composer ? link(piece.composer, searchUrl({ composer: piece.composer })) : el('span', 'fact-none', '記載なし');
+    const facts = [
+      { label: '作曲者', value: composer, note: piece.composerReading, wide: true },
+      { label: '編曲者', value: piece.arranger, wide: true },
+      { label: '分類', value: piece.category },
+      { label: '作曲年', value: year && withUnit(year, '年') },
+      players
+        ? { label: 'パート数', value: withUnit(String(players), 'パート') }
+        : { label: 'パート数', value: piece.instruments.length ? '不明' : '', note: 'パート数の記載がない楽器があります' },
+    ].filter((f) => f.value);
+    const dl = el('dl', 'detail-facts');
+    facts.forEach((f) => {
+      const item = el('div', f.wide ? 'fact fact-wide' : 'fact');
+      item.appendChild(el('dt', '', f.label));
       const dd = el('dd');
-      dd.append(value);
-      dl.appendChild(dd);
+      dd.append(f.value);
+      item.appendChild(dd);
+      if (f.note) item.appendChild(el('dd', 'fact-note', f.note));
+      dl.appendChild(item);
     });
     article.appendChild(dl);
     article.appendChild(youtubeLink(piece));
