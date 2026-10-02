@@ -21,8 +21,11 @@
     save: $('save'),
     clear: $('clear'),
     recent: $('recent'),
-    composerList: $('composer-list'),
     composer: $('composer'),
+    composerInput: $('composer-input'),
+    composerList: $('composer-list'),
+    composerSelected: $('composer-selected'),
+    composerClear: $('composer-clear'),
     composerReading: $('composer-reading'),
     composerReadingHint: $('composer-reading-hint'),
     composerReadingRequired: $('composer-reading-required'),
@@ -165,7 +168,7 @@
     ]);
     instruments = instrumentRows;
     composers = new Map(composerRows.map((r) => [r.name, r.reading || '']));
-    fillComposerList();
+    composerPicker.setComposers(composerList());
     syncComposerReading();
     fillDatalist(els.categoryList, [...new Set(categoryRows.map((r) => r.category))]);
 
@@ -181,28 +184,33 @@
     list.replaceChildren(...values.sort(collator.compare).map((v) => new Option(v)));
   }
 
-  // 作曲者の候補。よみがながあれば候補の横に表示する
-  function fillComposerList() {
-    const collator = new Intl.Collator('ja');
-    // 読みの五十音順（読みがない作曲者は名前で並べる）
-    const key = (name) => composers.get(name) || name;
-    const names = [...composers.keys()].sort((x, y) => collator.compare(key(x), key(y)) || collator.compare(x, y));
-    els.composerList.replaceChildren(...names.map((name) => new Option(composers.get(name), name)));
-  }
+  // ---- 作曲者（よみ・名前で候補を出して選ぶ。部品は combo.js） ----
+  // 登録済みの作曲者に加えて、入力した名前を「新しい作曲者」として選べる
+  const composerList = () => [...composers].map(([name, reading]) => ({ name, reading }));
+  const composerPicker = createComposerPicker({
+    input: els.composerInput,
+    list: els.composerList,
+    selected: els.composerSelected,
+    clear: els.composerClear,
+  }, {
+    composers: [],
+    allowNew: true,
+    onChange: (value) => {
+      els.composer.value = value;
+      syncComposerReading();
+      confirmedDuplicate = false;
+      els.duplicate.hidden = true;
+    },
+  });
 
   // ---- 作曲者のよみがな ----
-  // カタカナはひらがなに、空白は取り除く
-  function toHiragana(text) {
-    return text.normalize('NFKC').replace(/\s+/g, '')
-      .replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
-  }
 
   // 作曲者の入力に合わせて、よみがな欄の状態を切り替える
   //   登録済みでよみがなあり → 自動で表示して変更不可
   //   登録済みでよみがななし／新しい作曲者 → 入力必須
   function syncComposerReading() {
     const input = els.composerReading;
-    const name = els.composer.value.trim();
+    const name = els.composer.value;
     const known = composers.has(name);
     const registered = known ? composers.get(name) : '';
     if (input.dataset.auto === '1' && !(known && registered)) input.value = '';
@@ -210,7 +218,7 @@
     let hint;
     if (!name) {
       input.value = '';
-      hint = '作曲者を入力すると入力できます';
+      hint = '作曲者を選ぶと入力できます';
     } else if (registered) {
       input.value = registered;
       input.dataset.auto = '1';
@@ -227,10 +235,9 @@
     els.composerReadingHint.textContent = hint;
   }
 
-  els.composer.addEventListener('input', syncComposerReading);
   els.composerReading.addEventListener('input', () => { els.composerReading.dataset.auto = ''; });
   els.composerReading.addEventListener('change', () => {
-    els.composerReading.value = toHiragana(els.composerReading.value);
+    els.composerReading.value = toKana(els.composerReading.value);
   });
 
   // ---- 楽器編成の入力行 ----
@@ -273,8 +280,13 @@
     if (!piece.title) return { error: '曲名を入力してください。', focus: f.title };
     if (!piece.reading) return { error: 'よみがなを入力してください。', focus: f.reading };
 
+    // 作曲者欄に入力したまま候補を選んでいない
+    if (composerPicker.pendingText()) {
+      return { error: '作曲者は候補から選んでください（新しい作曲者は「〜を新しい作曲者として登録」を選びます）。', focus: els.composerInput };
+    }
+
     if (piece.composer) {
-      const reading = toHiragana(els.composerReading.value);
+      const reading = toKana(els.composerReading.value);
       els.composerReading.value = reading;
       if (!reading) return { error: '作曲者のよみがなを入力してください。', focus: els.composerReading };
       if (!/^[\u3041-\u3096\u309d\u309eー・]+$/.test(reading)) {
@@ -356,7 +368,7 @@
         { text: '検索ページで確認する', href: `index.html?q=${encodeURIComponent(piece.title)}` });
       if (piece.composer && !composers.get(piece.composer)) {
         composers.set(piece.composer, piece.composer_reading);
-        fillComposerList();
+        composerPicker.setComposers(composerList());
       }
       if (piece.category && ![...els.categoryList.options].some((o) => o.value === piece.category)) {
         els.categoryList.appendChild(new Option(piece.category));
@@ -376,6 +388,8 @@
     els.form.reset();
     els.rows.replaceChildren();
     addInstrumentRow();
+    els.composer.value = '';
+    composerPicker.setValue('');
     syncComposerReading();
     confirmedDuplicate = false;
     els.duplicate.hidden = true;

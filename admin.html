@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20261002-9">
+<link rel="stylesheet" href="style.css?v=20261002-10">
 </head>
 <body>
 
@@ -70,14 +70,23 @@
 
       <div class="field-row">
         <div class="field">
-          <label for="composer">作曲者</label>
-          <input type="text" id="composer" name="composer" list="composer-list" placeholder="一覧から選ぶか、新しく入力">
-          <datalist id="composer-list"></datalist>
+          <label for="composer-input">作曲者</label>
+          <div class="combo">
+            <input type="text" id="composer-input" class="combo-input" placeholder="よみ・名前で探す" autocomplete="off"
+              role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="composer-list">
+            <div class="combo-selected" id="composer-selected" hidden>
+              <span class="combo-name"></span>
+              <span class="combo-read"></span>
+              <button type="button" class="combo-clear" id="composer-clear" aria-label="作曲者の選択を解除">×</button>
+            </div>
+            <div class="combo-list" id="composer-list" role="listbox" aria-label="作曲者の候補" hidden></div>
+          </div>
+          <input type="hidden" id="composer" name="composer">
         </div>
         <div class="field">
           <label for="composer-reading">作曲者のよみがな <span class="required" id="composer-reading-required" hidden>必須</span></label>
           <input type="text" id="composer-reading" name="composer_reading" placeholder="ひらがなで入力（例：みやぎみちお）" disabled>
-          <p class="hint" id="composer-reading-hint">作曲者を入力すると入力できます</p>
+          <p class="hint" id="composer-reading-hint">作曲者を選ぶと入力できます</p>
         </div>
       </div>
 
@@ -143,8 +152,9 @@
   </div>
 </template>
 
-<script src="config.js?v=20261002-9"></script>
-<script src="constants.js?v=20261002-9"></script>
-<script src="admin.js?v=20261002-9"></script>
+<script src="config.js?v=20261002-10"></script>
+<script src="constants.js?v=20261002-10"></script>
+<script src="combo.js?v=20261002-10"></script>
+<script src="admin.js?v=20261002-10"></script>
 </body>
 </html>

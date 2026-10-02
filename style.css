@@ -321,6 +321,8 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 .combo-option.is-active { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .combo-option .combo-name { font-weight: 700; font-size: 0.9rem; overflow-wrap: anywhere; }
 .combo-option.is-none .combo-name { font-weight: 400; color: var(--muted); }
+.combo-option.is-new .combo-name { font-weight: 400; color: var(--accent); }
+.combo-selected.is-new .combo-read { color: var(--accent); font-weight: 700; }
 .combo-option .combo-read { grid-column: 1; font-size: 0.72rem; color: var(--muted); }
 .combo-read mark { background: none; color: var(--accent); font-weight: 700; }
 .combo-count { grid-row: 1 / span 2; grid-column: 2; font-size: 0.72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
