@@ -157,7 +157,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   const collator = new Intl.Collator('ja');
   const byReading = (a, b) => collator.compare(a.reading || a.title, b.reading || b.title);
-  // 値のない曲（作曲年・作曲者・人数が不明）は最後に並べる
+  // 値のない曲（作曲年・作曲者・パート数が不明）は最後に並べる
   const last = (v) => (v === null || v === '' ? 1 : 0);
   // 作曲者は読みの五十音順。読みがない作曲者は名前で並べる（ひらがなの後ろに来る）
   function composerSortKey(name, reading) {
@@ -201,7 +201,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     const meta = [];
     const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
     if (year) meta.push(`${year}年`);
-    if (piece.players) meta.push(`${piece.players}人`);
+    if (piece.players) meta.push(`${piece.players}パート`);
     top.appendChild(el('span', 'meta', meta.join('・')));
     li.appendChild(top);
 
