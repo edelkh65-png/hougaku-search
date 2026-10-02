@@ -63,6 +63,10 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     advanced: document.getElementById('advanced'),
     advancedCount: document.getElementById('advanced-count'),
     countMode: document.getElementById('count-mode'),
+    composerInput: document.getElementById('composer-input'),
+    composerSelected: document.getElementById('composer-selected'),
+    composerList: document.getElementById('composer-list'),
+    composerClear: document.getElementById('composer-clear'),
     instSummary: document.getElementById('inst-summary'),
   };
 
@@ -130,9 +134,135 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     els.perPage.value = String(DEFAULT_PAGE_SIZE);
 
     fillSelect(els.category, countBy((p) => p.category), '分類なし');
-    const composerReadings = new Map(pieces.map((p) => [p.composer, p.composerReading]));
-    fillSelect(els.composer, countBy((p) => p.composer), '記載なし', (name) => composerSortKey(name, composerReadings.get(name)));
   }
+
+  // ---- 作曲者の入力欄（よみ・名前で候補を出して選ぶ） ----
+  const composerCounts = countBy((p) => p.composer);
+  const composerReadings = new Map(pieces.map((p) => [p.composer, p.composerReading]));
+  const composerIndex = [...composerCounts.keys()].filter(Boolean).map((name) => ({
+    name,
+    reading: composerReadings.get(name) || '',
+    count: composerCounts.get(name),
+  }));
+  const NO_COMPOSER_LABEL = '作曲者の記載なし';
+  let composerOptions = [];
+  let activeOption = -1;
+
+  // カタカナはひらがなに、全角英数は半角に、空白は取り除く
+  function toKana(text) {
+    return text.normalize('NFKC').replace(/\s+/g, '')
+      .replace(/[\u30a1-\u30f6]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+  }
+
+  // よみは先頭一致、名前は途中一致。よみで当たった作曲者を先に、それぞれ五十音順
+  function findComposers(text) {
+    const q = toKana(text);
+    if (!q) return [];
+    const byKey = (x, y) => collator.compare(composerSortKey(x.name, x.reading), composerSortKey(y.name, y.reading));
+    const byReading = composerIndex.filter((c) => c.reading && c.reading.startsWith(q)).sort(byKey);
+    const byName = composerIndex.filter((c) => !byReading.includes(c) && toKana(c.name).includes(q)).sort(byKey);
+    return [...byReading, ...byName].map((c) => Object.assign({ match: byReading.includes(c) ? q.length : 0 }, c));
+  }
+
+  function renderComposerList() {
+    const text = els.composerInput.value;
+    const list = els.composerList;
+    list.replaceChildren();
+    composerOptions = [];
+    if (!toKana(text)) {
+      list.appendChild(el('p', 'combo-note', 'よみ（ひらがな）か名前を入力すると候補が出ます'));
+      if (composerCounts.get('')) composerOptions = [{ name: NO_COMPOSER_LABEL, value: NO_VALUE, reading: '', count: composerCounts.get(''), match: 0 }];
+    } else {
+      composerOptions = findComposers(text).map((c) => Object.assign({ value: c.name }, c));
+      if (!composerOptions.length) list.appendChild(el('p', 'combo-empty', `「${text.trim()}」に当てはまる作曲者は見つかりませんでした`));
+    }
+    composerOptions.forEach((c, i) => {
+      const opt = el('div', 'combo-option' + (c.value === NO_VALUE ? ' is-none' : ''));
+      opt.id = `composer-option-${i}`;
+      opt.setAttribute('role', 'option');
+      opt.dataset.index = String(i);
+      opt.appendChild(el('span', 'combo-name', c.name));
+      const read = el('span', 'combo-read');
+      if (c.match) read.appendChild(el('mark', '', c.reading.slice(0, c.match)));
+      read.append(c.reading.slice(c.match));
+      opt.appendChild(read);
+      opt.appendChild(el('span', 'combo-count', `${c.count}曲`));
+      list.appendChild(opt);
+    });
+    setActiveOption(composerOptions.length && toKana(text) ? 0 : -1);
+  }
+
+  function setActiveOption(i) {
+    activeOption = i;
+    els.composerList.querySelectorAll('.combo-option').forEach((opt, n) => {
+      opt.classList.toggle('is-active', n === i);
+      opt.setAttribute('aria-selected', String(n === i));
+      if (n === i) opt.scrollIntoView({ block: 'nearest' });
+    });
+    if (i >= 0) els.composerInput.setAttribute('aria-activedescendant', `composer-option-${i}`);
+    else els.composerInput.removeAttribute('aria-activedescendant');
+  }
+
+  function openComposerList() {
+    renderComposerList();
+    els.composerList.hidden = false;
+    els.composerInput.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeComposerList() {
+    els.composerList.hidden = true;
+    els.composerInput.setAttribute('aria-expanded', 'false');
+    setActiveOption(-1);
+  }
+
+  // 作曲者を決める（'' は指定なし、NO_VALUE は記載なし）。refresh が true なら検索をやり直す
+  function setComposer(value, refresh = true) {
+    els.composer.value = value;
+    const on = Boolean(value);
+    els.composerSelected.hidden = !on;
+    els.composerInput.hidden = on;
+    if (on) {
+      const reading = value === NO_VALUE ? '' : composerReadings.get(value) || '';
+      els.composerSelected.querySelector('.combo-name').textContent = value === NO_VALUE ? NO_COMPOSER_LABEL : value;
+      els.composerSelected.querySelector('.combo-read').textContent = reading;
+    }
+    els.composerInput.value = '';
+    closeComposerList();
+    if (refresh) update();
+  }
+
+  // 入力中は検索をやり直さない（作曲者を決めたときだけ条件が変わる）
+  els.composerInput.addEventListener('input', (e) => {
+    e.stopPropagation();
+    openComposerList();
+  });
+  els.composerInput.addEventListener('focus', openComposerList);
+  els.composerInput.addEventListener('blur', closeComposerList);
+  els.composerInput.addEventListener('keydown', (e) => {
+    const n = composerOptions.length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (els.composerList.hidden) openComposerList();
+      if (!n) return;
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      setActiveOption(activeOption < 0 ? (step > 0 ? 0 : n - 1) : (activeOption + step + n) % n);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (activeOption >= 0) setComposer(composerOptions[activeOption].value);
+    } else if (e.key === 'Escape') {
+      closeComposerList();
+    }
+  });
+  // mousedown で決める（クリックで入力欄からフォーカスが外れて一覧が閉じる前に）
+  els.composerList.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    const opt = e.target.closest('.combo-option');
+    if (opt) setComposer(composerOptions[Number(opt.dataset.index)].value);
+  });
+  els.composerClear.addEventListener('click', () => {
+    setComposer('');
+    els.composerInput.focus();
+  });
 
   // count を渡すとパート数も設定する（省略時は、選択済みならそのまま、新しく選ぶなら指定なし）
   function toggleInstrument(key, force, count) {
@@ -356,7 +486,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (params.get('cmp') === 'gte') els.form.elements.cmp.value = 'gte';
     if (params.get('mode') === 'exact') els.form.elements.mode.value = 'exact';
     els.category.value = params.get('category') || '';
-    els.composer.value = params.get('composer') || '';
+    setComposer(params.get('composer') || '', false);
     els.min.value = params.get('min') || '';
     els.max.value = params.get('max') || '';
     if (sorters[params.get('sort')]) els.sort.value = params.get('sort');
@@ -440,6 +570,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
 
   els.reset.addEventListener('click', () => {
     els.form.reset();
+    setComposer('', false);
     [...selected.keys()].forEach((k) => toggleInstrument(k, false));
     els.sort.value = 'reading';
     els.order.value = 'asc';
