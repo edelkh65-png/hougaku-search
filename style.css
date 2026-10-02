@@ -587,6 +587,22 @@ input[readonly] { background: var(--surface); color: var(--muted); }
 }
 .flag-solo { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 
+.listen { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 14px; }
+.listen .hint { margin: 0; }
+.youtube-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+  font-weight: 700;
+  text-decoration: none;
+}
+.detail-body a.youtube-link { color: var(--text); }
+.youtube-link:hover { border-color: var(--accent); }
+.youtube-icon { width: 28px; height: 20px; flex: none; }
 .related { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .related a::before { content: "→ "; }
 @media (max-width: 480px) {

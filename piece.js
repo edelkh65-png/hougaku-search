@@ -20,6 +20,27 @@
 
   const searchUrl = (params) => `index.html?${new URLSearchParams(params)}`;
 
+  // YouTube の公式アイコン（形・色は変更しない）
+  const YOUTUBE_ICON = '<svg class="youtube-icon" viewBox="0 0 28 20" aria-hidden="true" focusable="false">'
+    + '<path fill="#FF0000" d="M27.4 3.1A3.5 3.5 0 0 0 24.9.6C22.7 0 14 0 14 0S5.3 0 3.1.6A3.5 3.5 0 0 0 .6 3.1C0 5.3 0 10 0 10s0 4.7.6 6.9a3.5 3.5 0 0 0 2.5 2.5C5.3 20 14 20 14 20s8.7 0 10.9-.6a3.5 3.5 0 0 0 2.5-2.5C28 14.7 28 10 28 10s0-4.7-.6-6.9Z"/>'
+    + '<path fill="#FFFFFF" d="m11.2 14.3 7.3-4.3-7.3-4.3v8.6Z"/></svg>';
+
+  // 「曲名　作曲者名」（全角スペース区切り）で YouTube を検索するリンク
+  function youtubeLink(piece) {
+    const query = [piece.title, piece.composer].filter(Boolean).join('\u3000');
+    const a = el('a', 'youtube-link');
+    a.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.title = `YouTubeで「${query}」を検索（新しいタブで開きます）`;
+    a.innerHTML = YOUTUBE_ICON;
+    a.appendChild(el('span', '', 'YouTubeで探す'));
+    const wrap = el('div', 'listen');
+    wrap.appendChild(a);
+    wrap.appendChild(el('p', 'hint', `「${query}」の検索結果を開きます`));
+    return wrap;
+  }
+
   // 検索ページから来たときは、ブラウザの「戻る」と同じ動きにして検索結果の表示を保つ
   try {
     const ref = new URL(document.referrer);
@@ -71,6 +92,7 @@
       dl.appendChild(dd);
     });
     article.appendChild(dl);
+    article.appendChild(youtubeLink(piece));
 
     // 楽器編成
     const section = el('section', 'detail-section');
