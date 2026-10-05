@@ -96,7 +96,7 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 | `name` | 分類名（例：古典）。重複は不可 |
 | `color` | 検索ページ・詳細ページの印の色。`vermilion`（朱）・`indigo`（藍）・`green`（千歳緑）・`purple`（古代紫）・`ochre`（黄土）・`gray`（鈍色）のどれか |
 | `sort_order` | 登録ページの選択肢の並び順（小さい順） |
-| `hidden` | `true` にすると、その分類の曲は検索ページ・詳細ページに出なくなります（データは残り、登録ページの「最近登録した曲」には出ます） |
+| `hidden` | `true` にすると、その分類の曲は検索ページ・詳細ページに出なくなり、登録ページの分類の選択肢からも外れます（データは残り、登録ページの「最近登録した曲」には出ます） |
 
 変更は **Table Editor** の `categories` で行います。
 
@@ -182,6 +182,6 @@ alter table pieces drop column if exists category;
 
 ## 画面のファイルを更新したとき
 
-`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261005-2` のように版番号付きで読み込んでいます。
+`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261005-3` のように版番号付きで読み込んでいます。
 `style.css` や `*.js` を変更したら、この `v=` の値（日付など）を両方の HTML で新しい値に書き換えてください（3つの HTML すべて）。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。

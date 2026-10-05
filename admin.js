@@ -190,7 +190,7 @@
     const [instrumentRows, composerRows, categoryRows] = await Promise.all([
       api('instruments?select=key,label,family&order=sort_order,id'),
       api('composers?select=name,reading&order=name'),
-      api('categories?select=name,hidden&order=sort_order,id'),
+      api('categories?select=name&hidden=is.false&order=sort_order,id'),
     ]);
     instruments = instrumentRows;
     composers = new Map(composerRows.map((r) => [r.name, r.reading || '']));
@@ -205,11 +205,10 @@
     loadRecent();
   }
 
-  // 分類はマスタ（categories）から選ぶ。非表示の分類は選べるが、その曲は検索ページに出ない
+  // 分類はマスタ（categories）から選ぶ。非表示（hidden）の分類は選択肢に出さない
   function fillCategories(rows) {
     const current = els.category.value;
-    els.category.replaceChildren(new Option('（なし）', ''),
-      ...rows.map((r) => new Option(r.hidden ? `${r.name}（検索ページに出さない分類）` : r.name, r.name)));
+    els.category.replaceChildren(new Option('（なし）', ''), ...rows.map((r) => new Option(r.name, r.name)));
     els.category.value = current;
   }
 
