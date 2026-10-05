@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20261005-1">
+<link rel="stylesheet" href="style.css?v=20261005-2">
 </head>
 <body>
 
@@ -142,8 +142,10 @@
         </div>
         <div class="field">
           <label for="category">分類</label>
-          <input type="text" id="category" name="category" list="category-list" placeholder="例：古典、新曲、編曲">
-          <datalist id="category-list"></datalist>
+          <select id="category" name="category">
+            <option value="">（なし）</option>
+          </select>
+          <p class="hint">分類の追加・名前や色の変更は、Supabase の categories で行います</p>
         </div>
       </div>
 
@@ -197,9 +199,9 @@
   </div>
 </template>
 
-<script src="config.js?v=20261005-1"></script>
-<script src="constants.js?v=20261005-1"></script>
-<script src="combo.js?v=20261005-1"></script>
-<script src="admin.js?v=20261005-1"></script>
+<script src="config.js?v=20261005-2"></script>
+<script src="constants.js?v=20261005-2"></script>
+<script src="combo.js?v=20261005-2"></script>
+<script src="admin.js?v=20261005-2"></script>
 </body>
 </html>

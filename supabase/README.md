@@ -81,19 +81,49 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 登録ページでできること：
 - 曲の情報（曲名・よみがな・副題・作曲者・編曲者・分類・作曲年・備考）と楽器編成の入力
 - 作曲者：よみ（ひらがな）か名前を入力すると登録済みの作曲者が候補に出るので選ぶ。新しい作曲者は「〜を新しい作曲者として登録」を選ぶ（検索ページの作曲者欄と同じ操作）
-- 分類：既存の一覧から選ぶか、新しく入力
+- 分類：分類のマスタ（categories）から選ぶ（分類の追加・変更は下の「分類を管理する」）
 - 作曲者のよみがな：登録済みの作曲者は自動で表示（変更不可）。新しい作曲者や、よみがな未登録の作曲者は入力必須（カタカナで入力してもひらがなに変換）
 - 同じ曲名の曲がすでにある場合は確認を表示
 - 最近登録した10曲の確認と削除
 - 招待メールからのパスワード設定、パスワードを忘れたときの再設定
 
-## 5. 楽曲を追加・編集する（その他の方法）
+## 5. 分類を管理する（categories）
+
+曲の分類（古典・現代曲など）は `categories` テーブルで管理しています。曲（`pieces`）は `category_id` で分類を指しているので、分類の名前や色を変えると、その分類の曲すべてに反映されます。
+
+| 列 | 内容 |
+|---|---|
+| `name` | 分類名（例：古典）。重複は不可 |
+| `color` | 検索ページ・詳細ページの印の色。`vermilion`（朱）・`indigo`（藍）・`green`（千歳緑）・`purple`（古代紫）・`ochre`（黄土）・`gray`（鈍色）のどれか |
+| `sort_order` | 登録ページの選択肢の並び順（小さい順） |
+| `hidden` | `true` にすると、その分類の曲は検索ページ・詳細ページに出なくなります（データは残り、登録ページの「最近登録した曲」には出ます） |
+
+変更は **Table Editor** の `categories` で行います。
+
+- **分類を追加する**：「Insert row」で `name` と `color` を入れる。登録ページの分類の選択肢に出てきます
+- **名前・色を変える**：その行の `name`・`color` を書き換える
+- **分類の曲を隠す／戻す**：`hidden` を `true`／`false` にする（今は「SG」が `true`）
+- **分類を削除する**：その分類の曲がある間は削除できません。先に曲の分類を別のものに変えるか、`hidden` を使ってください
+
+印の色を増やしたいときは、`style.css` の `--cat-…` と `.badge[data-color="…"]`、`schema.sql`・`admin.sql` の `color` の選択肢を合わせて追加します。
+
+### 以前の `pieces.category` 列について
+
+`admin.sql` を実行すると、以前の `pieces.category`（分類名の文字の列）から `categories` と `pieces.category_id` に移行します。新しい画面は `category_id` だけを使います。
+移行後、検索ページで分類が正しく表示されることを確認したら、次の SQL で古い列を削除できます（削除しなくても動作に影響はありません）。
+
+```sql
+alter table pieces drop column if exists category;
+```
+
+## 6. 楽曲を追加・編集する（その他の方法）
 
 ### まとめて更新する（CSV から作り直す）
 
 1. Excel などで `songs.csv` を編集します（列の並びは今のまま。Shift_JIS / UTF-8 どちらで保存しても読めます）。
 2. `node music/supabase/import-csv.js` を実行すると、`seed.sql` と `music/data.js` が作り直されます。
-3. SQL Editor で `schema.sql` → `seed.sql` の順に実行し直します。
+3. SQL Editor で `schema.sql` → `seed.sql` → `admin.sql` の順に実行し直します。
+   - 分類の初期値（色・非表示）は `import-csv.js` の `CATEGORIES` で決めています。
 
 この方法では、Table Editor で直接追加・編集した内容は消えます。どちらか一方の方法で管理してください。
 
@@ -101,7 +131,8 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 
 1. **composers**：作曲者がまだいなければ追加（`name`）
 2. **pieces**：楽曲を追加
-   - `title`（曲名）、`reading`（よみがな）、`subtitle`（副題）、`category`（古典・新曲・編曲・SG など、空欄可）
+   - `title`（曲名）、`reading`（よみがな）、`subtitle`（副題）
+   - `category_id`：分類の `id`（`categories` テーブル。空欄可）
    - `composer_id`：作曲者の `id`（不明なら空欄）
    - `arranger`（編曲者）、`year`（作曲年）、`remarks`（備考）
 3. **piece_instruments**：楽器を1つずつ追加
@@ -151,6 +182,6 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 
 ## 画面のファイルを更新したとき
 
-`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261005-1` のように版番号付きで読み込んでいます。
+`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261005-2` のように版番号付きで読み込んでいます。
 `style.css` や `*.js` を変更したら、この `v=` の値（日付など）を両方の HTML で新しい値に書き換えてください（3つの HTML すべて）。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。

@@ -40,7 +40,7 @@
     composerReading: $('composer-reading'),
     composerReadingHint: $('composer-reading-hint'),
     composerReadingRequired: $('composer-reading-required'),
-    categoryList: $('category-list'),
+    category: $('category'),
     rowTemplate: $('instrument-row'),
   };
 
@@ -190,13 +190,13 @@
     const [instrumentRows, composerRows, categoryRows] = await Promise.all([
       api('instruments?select=key,label,family&order=sort_order,id'),
       api('composers?select=name,reading&order=name'),
-      api('pieces?select=category&category=not.is.null&limit=10000'),
+      api('categories?select=name,hidden&order=sort_order,id'),
     ]);
     instruments = instrumentRows;
     composers = new Map(composerRows.map((r) => [r.name, r.reading || '']));
     composerPicker.setComposers(composerList());
     syncComposerReading();
-    fillDatalist(els.categoryList, [...new Set(categoryRows.map((r) => r.category))]);
+    fillCategories(categoryRows);
 
     els.form.hidden = false;
     els.recent.closest('.panel').hidden = false;
@@ -205,9 +205,12 @@
     loadRecent();
   }
 
-  function fillDatalist(list, values) {
-    const collator = new Intl.Collator('ja');
-    list.replaceChildren(...values.sort(collator.compare).map((v) => new Option(v)));
+  // 分類はマスタ（categories）から選ぶ。非表示の分類は選べるが、その曲は検索ページに出ない
+  function fillCategories(rows) {
+    const current = els.category.value;
+    els.category.replaceChildren(new Option('（なし）', ''),
+      ...rows.map((r) => new Option(r.hidden ? `${r.name}（検索ページに出さない分類）` : r.name, r.name)));
+    els.category.value = current;
   }
 
   // ---- 作曲者（よみ・名前で候補を出して選ぶ。部品は combo.js） ----
@@ -395,9 +398,6 @@
       if (piece.composer && !composers.get(piece.composer)) {
         composers.set(piece.composer, piece.composer_reading);
         composerPicker.setComposers(composerList());
-      }
-      if (piece.category && ![...els.categoryList.options].some((o) => o.value === piece.category)) {
-        els.categoryList.appendChild(new Option(piece.category));
       }
       clearForm();
       loadRecent();

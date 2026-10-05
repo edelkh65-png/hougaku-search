@@ -46,6 +46,9 @@ const INSTRUMENTS = {
   other: {"label":"その他","family":"other","aliases":[]},
 };
 
+// 分類：{ 名前: { color, hidden } }。hidden の分類の曲は表示しない
+const CATEGORIES = {"古典":{"color":"indigo","hidden":false},"明治新曲":{"color":"ochre","hidden":false},"新曲":{"color":"purple","hidden":false},"現代曲":{"color":"vermilion","hidden":false},"編曲":{"color":"green","hidden":false},"SG":{"color":"gray","hidden":true}};
+
 // instruments: [楽器キー, 人数（null は不明）, 表記, 独奏, 省略可]
 const PIECES = [
   {"title":"アールグレイ","reading":"あーるぐれい","composer":"小田誠","instruments":[["koto",2],["jushichigen",1],["shakuhachi",1]]},

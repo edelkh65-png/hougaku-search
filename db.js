@@ -2,8 +2,11 @@
 // 戻り値：{ instruments: {key: {label, family, aliases}}, pieces: [...] }
 //   piece.id は Supabase の pieces.id（data.js では並び順 + 1 で、seed.sql の id と同じ）
 //   piece.composerReading は作曲者名の読み（data.js では空。並び替えは作曲者名で代用）
+//   piece.category は分類名、piece.categoryColor は印の色（categories.color）
 //   piece.instruments: [{ key, parts, notation, solo, optional }]
-const PIECE_SELECT = 'id,title,reading,subtitle,category,arranger,year,year_label,remarks,'
+//   非表示（hidden）の分類の曲は含まない（Supabase では読み取り権限の設定で除外される）
+const PIECE_SELECT = 'id,title,reading,subtitle,arranger,year,year_label,remarks,'
+  + 'category:categories(name,color),'
   + 'composer:composers(name,reading),'
   + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key))';
 
@@ -40,7 +43,8 @@ function pieceFromDbRow(row) {
     title: row.title,
     reading: row.reading || '',
     subtitle: row.subtitle || '',
-    category: row.category || '',
+    category: row.category ? row.category.name : '',
+    categoryColor: row.category ? row.category.color : '',
     composer: row.composer ? row.composer.name : '',
     composerReading: row.composer ? row.composer.reading || '' : '',
     arranger: row.arranger || '',
@@ -94,12 +98,14 @@ async function loadLocalData() {
       document.head.appendChild(script);
     });
   }
+  const categories = typeof CATEGORIES === 'undefined' ? {} : CATEGORIES;
   const pieces = PIECES.map((p, i) => Object.assign({
     id: i + 1, reading: '', subtitle: '', category: '', composer: '', composerReading: '', arranger: '', year: null, yearLabel: '', remarks: '',
   }, p, {
+    categoryColor: p.category && categories[p.category] ? categories[p.category].color : '',
     instruments: p.instruments.map(([key, parts, notation, solo, optional]) => ({
       key, parts, notation: notation || '', solo: !!solo, optional: !!optional,
     })),
-  }));
+  })).filter((p) => !(p.category && categories[p.category] && categories[p.category].hidden));
   return { instruments: INSTRUMENTS, pieces };
 }

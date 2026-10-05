@@ -1,9 +1,20 @@
 -- 楽曲検索アプリのテーブル定義
 -- Supabase の SQL Editor に貼り付けて実行してください。
--- 注意：既存の楽曲テーブル（composers / instruments / pieces / piece_instruments）を削除して作り直します。
+-- 注意：既存の楽曲テーブル（categories / composers / instruments / pieces / piece_instruments）を削除して作り直します。
 -- 登録ページを使う場合は、続けて admin.sql も実行してください。
 
-drop table if exists piece_instruments, pieces, instruments, composers cascade;
+drop table if exists piece_instruments, pieces, instruments, composers, categories cascade;
+
+-- 分類のマスタ。名前・色・並び順・表示するかどうかをここで管理する
+create table categories (
+  id         bigint generated always as identity primary key,
+  name       text not null unique,          -- 表示名（例：古典）
+  color      text not null default 'gray' check (color in
+               ('vermilion', 'indigo', 'green', 'purple', 'ochre', 'gray')),
+                                            -- 印の色：朱・藍・千歳緑・古代紫・黄土・鈍色
+  sort_order int not null default 0,        -- 登録ページの選択肢の並び順
+  hidden     boolean not null default false -- true の分類の曲は、検索ページ・詳細ページに出さない
+);
 
 create table composers (
   id      bigint generated always as identity primary key,
@@ -26,7 +37,7 @@ create table pieces (
   title       text not null,
   reading     text not null default '',     -- よみがな（五十音順の並び替えに使用）
   subtitle    text not null default '',     -- 副題
-  category    text,                         -- 分類（古典・新曲・編曲・SG など。空欄可）
+  category_id bigint references categories (id),  -- 分類（空欄可）
   composer_id bigint references composers (id),
   arranger    text not null default '',     -- 編曲者
   year        int,                          -- 作曲年（並び替え用）
@@ -48,16 +59,21 @@ create table piece_instruments (
 );
 
 create index on pieces (composer_id);
+create index on pieces (category_id);
 create index on piece_instruments (piece_id);
 create index on piece_instruments (instrument_id);
 
 -- 閲覧は誰でも可能、書き込みは管理画面（ログインした管理者）からのみ
+alter table categories        enable row level security;
 alter table composers         enable row level security;
 alter table instruments       enable row level security;
 alter table pieces            enable row level security;
 alter table piece_instruments enable row level security;
 
+create policy "public read" on categories        for select to anon, authenticated using (true);
 create policy "public read" on composers         for select to anon, authenticated using (true);
 create policy "public read" on instruments       for select to anon, authenticated using (true);
-create policy "public read" on pieces            for select to anon, authenticated using (true);
+-- 非表示（hidden）の分類の曲は読めないようにする（登録担当者は admin.sql の権限で読める）
+create policy "public read" on pieces            for select to anon, authenticated
+  using (category_id is null or category_id not in (select id from categories where hidden));
 create policy "public read" on piece_instruments for select to anon, authenticated using (true);

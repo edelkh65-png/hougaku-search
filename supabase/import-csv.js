@@ -9,6 +9,19 @@ const path = require('path');
 const CSV_PATH = process.argv[2] || path.join(__dirname, 'songs.csv');
 const MUSIC_DIR = path.join(__dirname, '..');
 
+// ---- 分類のマスタ（categories）の初期値 ----
+// color：vermilion 朱／indigo 藍／green 千歳緑／purple 古代紫／ochre 黄土／gray 鈍色
+// hidden：true の分類の曲は検索ページ・詳細ページに出さない
+// CSV にあってここにない分類は、鈍色・表示ありで追加します
+const CATEGORIES = [
+  { name: '古典', color: 'indigo' },
+  { name: '明治新曲', color: 'ochre' },
+  { name: '新曲', color: 'purple' },
+  { name: '現代曲', color: 'vermilion' },
+  { name: '編曲', color: 'green' },
+  { name: 'SG', color: 'gray', hidden: true },
+];
+
 // ---- 楽器の定義（この順で検索画面に並びます） ----
 // ensemble: true の楽器は人数を決めない編成（人数の指定がなければ「人数不明」扱い）
 const INSTRUMENTS = {
@@ -246,6 +259,15 @@ function parseRow(cols, header) {
 }
 
 // ---- 出力 ----
+// マスタの分類に、CSV にだけある分類を加えた一覧
+function categoryList(pieces) {
+  const list = CATEGORIES.map((c) => ({ color: 'gray', hidden: false, ...c }));
+  pieces.forEach((p) => {
+    if (p.category && !list.some((c) => c.name === p.category)) list.push({ name: p.category, color: 'gray', hidden: false });
+  });
+  return list;
+}
+
 function toDataJs(pieces) {
   const compact = (p) => {
     const o = { title: p.title };
@@ -266,16 +288,19 @@ function toDataJs(pieces) {
     '// 楽曲データ（Supabase 未接続のときに使います）',
     '// このファイルは supabase/import-csv.js で自動生成しています。直接編集しないでください。',
     'const INSTRUMENTS = {', ...instruments, '};', '',
+    '// 分類：{ 名前: { color, hidden } }。hidden の分類の曲は表示しない',
+    `const CATEGORIES = ${JSON.stringify(Object.fromEntries(categoryList(pieces).map((c) => [c.name, { color: c.color, hidden: c.hidden }])))};`, '',
     '// instruments: [楽器キー, 人数（null は不明）, 表記, 独奏, 省略可]',
     'const PIECES = [', ...pieces.map((p) => `  ${compact(p)},`), '];', '',
   ].join('\n');
 }
 
 function toSeedSql(pieces) {
-  const s = (v) => (v === null || v === undefined || v === '' ? 'null' : `'${String(v).replace(/'/g, "''")}'`);
   const t = (v) => `'${String(v || '').replace(/'/g, "''")}'`; // 空文字を許す列
   const n = (v) => (v === null || v === undefined ? 'null' : String(v));
 
+  const categories = categoryList(pieces);
+  const categoryId = new Map(categories.map((c, i) => [c.name, i + 1]));
   const composers = [...new Set(pieces.map((p) => p.composer).filter(Boolean))];
   const composerId = new Map(composers.map((c, i) => [c, i + 1]));
   const instrumentKeys = Object.keys(INSTRUMENTS);
@@ -288,7 +313,7 @@ function toSeedSql(pieces) {
   return [
     '-- 楽曲データの登録（import-csv.js で songs.csv から生成）',
     '-- schema.sql の実行後に、SQL Editor で実行してください。',
-    `-- 楽曲 ${pieces.length}曲 / 作曲者 ${composers.length}人 / 楽器 ${instrumentKeys.length}種類`,
+    `-- 楽曲 ${pieces.length}曲 / 作曲者 ${composers.length}人 / 楽器 ${instrumentKeys.length}種類 / 分類 ${categories.length}種類`,
     'begin;', '',
     'insert into instruments (id, key, label, family, aliases, sort_order) overriding system value values',
     instrumentKeys.map((k, i) => {
@@ -296,15 +321,18 @@ function toSeedSql(pieces) {
       const aliases = `array[${v.aliases.map(t).join(', ')}]::text[]`;
       return `  (${i + 1}, ${t(k)}, ${t(v.label)}, ${t(v.family)}, ${aliases}, ${i})`;
     }).join(',\n') + ';', '',
+    'insert into categories (id, name, color, sort_order, hidden) overriding system value values',
+    categories.map((c, i) => `  (${i + 1}, ${t(c.name)}, ${t(c.color)}, ${i + 1}, ${c.hidden})`).join(',\n') + ';', '',
     'insert into composers (id, name) overriding system value values',
     composers.map((c) => `  (${composerId.get(c)}, ${t(c)})`).join(',\n') + ';', '',
-    'insert into pieces (id, title, reading, subtitle, category, composer_id, arranger, year, year_label, remarks) overriding system value values',
-    pieces.map((p, i) => `  (${i + 1}, ${t(p.title)}, ${t(p.reading)}, ${t(p.subtitle)}, ${s(p.category)}, ${n(composerId.get(p.composer))}, `
+    'insert into pieces (id, title, reading, subtitle, category_id, composer_id, arranger, year, year_label, remarks) overriding system value values',
+    pieces.map((p, i) => `  (${i + 1}, ${t(p.title)}, ${t(p.reading)}, ${t(p.subtitle)}, ${n(categoryId.get(p.category))}, ${n(composerId.get(p.composer))}, `
       + `${t(p.arranger)}, ${n(p.year)}, ${t(p.yearLabel)}, ${t(p.remarks)})`).join(',\n') + ';', '',
     'insert into piece_instruments (piece_id, instrument_id, parts, is_solo, is_optional, notation, position) values',
     links.join(',\n') + ';', '',
     '-- 今後 Table Editor で追加する行の id が重ならないように、連番を進める',
     "select setval(pg_get_serial_sequence('instruments', 'id'), (select max(id) from instruments));",
+    "select setval(pg_get_serial_sequence('categories', 'id'), (select max(id) from categories));",
     "select setval(pg_get_serial_sequence('composers', 'id'), (select max(id) from composers));",
     "select setval(pg_get_serial_sequence('pieces', 'id'), (select max(id) from pieces));",
     '', 'commit;', '',

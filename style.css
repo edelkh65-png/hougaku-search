@@ -15,13 +15,12 @@
   --danger-soft: #fbe7e5;
   --warning-soft: #f8edd3;
   --string: #b9a98a;       /* 箏の絃 */
-  /* 分類の色（日本の伝統色。現代曲はサイトの朱のまま） */
-  --cat-classic: #2b4c6f;   /* 藍 */
-  --cat-arrange: #3a6b4a;   /* 千歳緑 */
-  --cat-new: #6e4f7d;       /* 古代紫 */
-  --cat-meiji: #85652c;     /* 黄土 */
-  --cat-sg: #5a5550;        /* 鈍色 */
-  --cat-other: #5a5550;
+  /* 分類の印の色（日本の伝統色。朱はサイトの --accent を使う） */
+  --cat-indigo: #2b4c6f;    /* 藍 */
+  --cat-green: #3a6b4a;     /* 千歳緑 */
+  --cat-purple: #6e4f7d;    /* 古代紫 */
+  --cat-ochre: #85652c;     /* 黄土 */
+  --cat-gray: #5a5550;      /* 鈍色 */
   --radius: 4px;
   --sans: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
   --mincho: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
@@ -44,12 +43,11 @@
     --danger-soft: #3d2220;
     --warning-soft: #3a3120;
     --string: #6d6250;
-    --cat-classic: #8fb0d4;
-    --cat-arrange: #8fc0a0;
-    --cat-new: #bba3cb;
-    --cat-meiji: #d4b06a;
-    --cat-sg: #b0a89e;
-    --cat-other: #b0a89e;
+    --cat-indigo: #8fb0d4;
+    --cat-green: #8fc0a0;
+    --cat-purple: #bba3cb;
+    --cat-ochre: #d4b06a;
+    --cat-gray: #b0a89e;
     color-scheme: dark;
   }
 }
@@ -70,12 +68,11 @@
   --danger-soft: #3d2220;
   --warning-soft: #3a3120;
   --string: #6d6250;
-  --cat-classic: #8fb0d4;
-  --cat-arrange: #8fc0a0;
-  --cat-new: #bba3cb;
-  --cat-meiji: #d4b06a;
-  --cat-sg: #b0a89e;
-  --cat-other: #b0a89e;
+  --cat-indigo: #8fb0d4;
+  --cat-green: #8fc0a0;
+  --cat-purple: #bba3cb;
+  --cat-ochre: #d4b06a;
+  --cat-gray: #b0a89e;
   color-scheme: dark;
 }
 
@@ -420,14 +417,13 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 35%, transparent);
   transform: rotate(-3deg);
 }
-/* 分類ごとの色。一覧にない分類は鈍色 */
-.badge[data-category] { --badge: var(--cat-other); }
-.badge[data-category="現代曲"] { --badge: var(--accent); }
-.badge[data-category="古典"] { --badge: var(--cat-classic); }
-.badge[data-category="編曲"] { --badge: var(--cat-arrange); }
-.badge[data-category="新曲"] { --badge: var(--cat-new); }
-.badge[data-category="明治新曲"] { --badge: var(--cat-meiji); }
-.badge[data-category="SG"] { --badge: var(--cat-sg); }
+/* 分類ごとの色（色の名前は分類のマスタ categories.color） */
+.badge[data-color="vermilion"] { --badge: var(--accent); }
+.badge[data-color="indigo"] { --badge: var(--cat-indigo); }
+.badge[data-color="green"] { --badge: var(--cat-green); }
+.badge[data-color="purple"] { --badge: var(--cat-purple); }
+.badge[data-color="ochre"] { --badge: var(--cat-ochre); }
+.badge[data-color="gray"] { --badge: var(--cat-gray); }
 
 .card-title { margin: 10px 0 0; font-family: var(--mincho); font-size: 1.1rem; line-height: 1.4; text-wrap: balance; overflow-wrap: anywhere; }
 .card-subtitle { display: block; font-size: 0.8rem; font-weight: 400; color: var(--muted); }

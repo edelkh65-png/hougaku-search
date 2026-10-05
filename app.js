@@ -305,10 +305,10 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     return node;
   }
 
-  // 分類の印。色は style.css の .badge[data-category] で分類ごとに変える
-  function categoryBadge(category) {
-    const badge = el('span', 'badge', category);
-    badge.dataset.category = category;
+  // 分類の印。色は分類のマスタ（categories.color）で決まり、style.css の .badge[data-color] で塗る
+  function categoryBadge(piece) {
+    const badge = el('span', 'badge', piece.category);
+    badge.dataset.color = piece.categoryColor || 'gray';
     return badge;
   }
 
@@ -316,7 +316,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     const li = el('li', 'card');
 
     const top = el('div', 'card-top');
-    top.appendChild(piece.category ? categoryBadge(piece.category) : el('span'));
+    top.appendChild(piece.category ? categoryBadge(piece) : el('span'));
     const meta = [];
     const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
     if (year) meta.push(`${year}年`);
