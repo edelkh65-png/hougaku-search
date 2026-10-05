@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // claude.ai 版の楽曲検索ページ（1ファイルの HTML）を作る
 //
-// 使い方（リポジトリのどこからでも）：
-//   node music/tools/build-artifact.js              … Supabase の今のデータで作る
-//   node music/tools/build-artifact.js --data a.json … 保存したデータ（loadMusicData の結果）で作る
-//   node music/tools/build-artifact.js --out x.html  … 出力先（省略時は music/tools/out/music-search.html）
-//   node music/tools/build-artifact.js --save-data a.json … Supabase から読んだデータを保存する
+// 使い方（リポジトリの一番上で）：
+//   node tools/build-artifact.js              … Supabase の今のデータで作る
+//   node tools/build-artifact.js --data a.json … 保存したデータ（loadMusicData の結果）で作る
+//   node tools/build-artifact.js --out x.html  … 出力先（省略時は tools/out/music-search.html）
+//   node tools/build-artifact.js --save-data a.json … Supabase から読んだデータを保存する
 //
 // 作ったファイルを claude.ai のアーティファクトとして公開する。
 // 中身：index.html の画面 ＋ style.css ＋ 各 JS ＋ 曲データ（埋め込み）＋ artifact-shim.js（中に piece.js）

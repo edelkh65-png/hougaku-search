@@ -1,0 +1,9 @@
+# テストで入れるパッケージ
+node_modules/
+
+# claude.ai 版の出力（tools/build-artifact.js）
+tools/out/
+
+# OS が作るファイル
+.DS_Store
+Thumbs.db

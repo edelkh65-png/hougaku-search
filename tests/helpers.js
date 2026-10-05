@@ -1,5 +1,5 @@
 // テストの共通部品
-//   ・music/ のファイルを配る小さなサーバー（config.js だけテスト用の接続先に差し替える）
+//   ・アプリのファイルを配る小さなサーバー（config.js だけテスト用の接続先に差し替える）
 //   ・Supabase のふり（fixtures/db.json のデータで REST と認証に答える）
 //   ・ブラウザ（Playwright の Chromium）
 const http = require('http');
@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright');
 
-const MUSIC = path.join(__dirname, '..');
+const MUSIC = path.join(__dirname, '..'); // アプリのファイルがある場所（リポジトリの一番上）
 // CSP（connect-src）で許可されている *.supabase.co の形にしておく
 const DB_URL = 'https://test.supabase.co';
 const EDITOR = { email: 'editor@example.com', password: 'pass1234' };
@@ -17,11 +17,11 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 function startServer() {
   const server = http.createServer((req, res) => {
     const pathname = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-    if (pathname === '/music/config.js') {
+    if (pathname === '/config.js') {
       res.writeHead(200, { 'content-type': TYPES['.js'] });
       return res.end(`window.MUSIC_DB = { url: '${DB_URL}', key: 'test-key' };`);
     }
-    const file = path.join(MUSIC, pathname.replace(/^\/music\//, ''));
+    const file = path.join(MUSIC, pathname);
     if (!file.startsWith(MUSIC)) { res.writeHead(403); return res.end(); }
     fs.readFile(file, (err, data) => {
       if (err) { res.writeHead(404); return res.end(); }
@@ -142,7 +142,7 @@ function mockSupabase(db, options = {}) {
 // テスト1ファイル分の準備：サーバー・ブラウザ・ページを作る関数を返す
 async function setup() {
   const server = await startServer();
-  const base = `http://127.0.0.1:${server.address().port}/music/`;
+  const base = `http://127.0.0.1:${server.address().port}/`;
   const browser = await chromium.launch();
 
   async function newPage({ viewport = { width: 1000, height: 900 }, mockOptions } = {}) {

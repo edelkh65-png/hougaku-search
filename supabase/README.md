@@ -1,7 +1,7 @@
 # Supabase で楽曲データを管理する
 
-楽曲検索アプリ（`music/`）のデータは、Supabase のデータベースで管理しています。
-曲の追加・削除は登録ページ（`music/admin.html`）か、Supabase の **Table Editor** で行います。
+楽曲検索アプリのデータは、Supabase のデータベースで管理しています。
+曲の追加・削除は登録ページ（`admin.html`）か、Supabase の **Table Editor** で行います。
 
 ## 1. 今の構成
 
@@ -19,7 +19,7 @@
 
 ## 2. アプリとの接続（config.js）
 
-`music/config.js` に、Supabase の **Project Settings → API Keys** にある次の2つを書いています。
+`config.js` に、Supabase の **Project Settings → API Keys** にある次の2つを書いています。
 
 - **Project URL**（`https://xxxxxxxx.supabase.co`）→ `url`
 - **Publishable key**（`sb_publishable_...`。古いプロジェクトでは `anon` `public` キー）→ `key`
@@ -36,13 +36,13 @@ Publishable key は公開して問題ないキーです。「誰でも読める�
 
 ## 3. 楽曲登録ページを使えるようにする
 
-`music/admin.html` から、ログインした登録担当者が曲を追加・削除できます。
+`admin.html` から、ログインした登録担当者が曲を追加・削除できます。
 
 1. SQL Editor で `admin.sql` の中身をすべて貼り付けて **Run** を押します。
    - `schema.sql` を実行し直したときは、`admin.sql` も実行し直してください。
 2. **Authentication → URL Configuration** を開き、次のように設定して保存します（招待・パスワード再設定のメールのリンク先になります）。
-   - **Site URL**：`https://edelkh65-png.github.io/test-page/music/admin.html`
-   - **Redirect URLs**：「Add URL」で同じ `https://edelkh65-png.github.io/test-page/music/admin.html` を追加
+   - **Site URL**：`https://edelkh65-png.github.io/hougaku-search/admin.html`
+   - **Redirect URLs**：「Add URL」で同じ `https://edelkh65-png.github.io/hougaku-search/admin.html` を追加
    - これを設定しないと、メールのリンクが `http://localhost:3000` に飛んでしまい開けません。
 3. 登録担当者のアカウントを作ります。次のどちらかの方法で行います。
    - **招待メールを送る（おすすめ）**：**Authentication → Users** で「Add user」→「Send invitation」を選び、メールアドレスを入力します。
@@ -140,21 +140,21 @@ alter table pieces drop column if exists category;
 
 ## 6. claude.ai 版を更新する
 
-claude.ai のページ（1ファイルの HTML）は、`music/tools/build-artifact.js` で作ります。claude.ai 版は Supabase に直接つながらないので、作った時点のデータが埋め込まれます。
+claude.ai のページ（1ファイルの HTML）は、`tools/build-artifact.js` で作ります。claude.ai 版は Supabase に直接つながらないので、作った時点のデータが埋め込まれます。
 
 ```sh
-node music/tools/build-artifact.js
+node tools/build-artifact.js
 ```
 
-- `music/tools/out/music-search.html` ができるので、それを claude.ai のアーティファクトとして公開します。
-- 中身は `index.html` の画面・`style.css`・各 JS に、曲データと `music/tools/artifact-shim.js`（曲の詳細を同じページ内に表示する部品）を加えたものです。
+- `tools/out/music-search.html` ができるので、それを claude.ai のアーティファクトとして公開します。
+- 中身は `index.html` の画面・`style.css`・各 JS に、曲データと `tools/artifact-shim.js`（曲の詳細を同じページ内に表示する部品）を加えたものです。
 
 ## 7. 動作確認のテスト
 
-`music/tests/` に、ブラウザで画面を動かして確認するテストがあります。データは本物の Supabase ではなく、`music/tests/fixtures/` のテスト用データを使います。
+`tests/` に、ブラウザで画面を動かして確認するテストがあります。データは本物の Supabase ではなく、`tests/fixtures/` のテスト用データを使います。
 
 ```sh
-cd music/tests
+cd tests
 npm install          # 初回のみ（Playwright を入れる）
 npx playwright install chromium   # 初回のみ（テスト用のブラウザ）
 npm test
@@ -185,6 +185,6 @@ npm test
 
 ## 画面のファイルを更新したとき
 
-`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261006-2` のように版番号付きで読み込んでいます。
+`index.html`・`piece.html`・`admin.html` では、CSS・JS を `style.css?v=20261006-2` のように版番号付きで読み込んでいます。
 `style.css` や `*.js` を変更したら、この `v=` の値（日付など）を3つの HTML すべてで新しい値に書き換えてください。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。
