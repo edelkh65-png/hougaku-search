@@ -22,7 +22,7 @@
     { "id": 1, "title": "春の海", "reading": "はるのうみ", "subtitle": "", "category_id": 2, "composer_id": 1, "arranger": "", "year": 1929, "year_label": "", "remarks": "",
       "instruments": [{ "key": "koto", "parts": 1 }, { "key": "shakuhachi", "parts": 1 }] },
     { "id": 2, "title": "六段の調", "reading": "ろくだんのしらべ", "subtitle": "", "category_id": 1, "composer_id": 3, "arranger": "", "year": null, "year_label": "", "remarks": "",
-      "instruments": [{ "key": "koto", "parts": null, "notation": "箏 ●" }] },
+      "instruments": [{ "key": "koto", "parts": null, "notation": "箏 ●" }, { "key": "sangen", "parts": null, "notation": "三絃 ●" }] },
     { "id": 3, "title": "二つの群の為に", "reading": "ふたつのぐんのために", "subtitle": "", "category_id": 2, "composer_id": 2, "arranger": "", "year": null, "year_label": "", "remarks": "",
       "instruments": [{ "key": "koto", "parts": 4, "is_solo": true, "notation": "箏 独+3" }, { "key": "jushichigen", "parts": 3, "is_solo": true, "notation": "十七絃 独+2" }] },
     { "id": 4, "title": "赤とんぼ", "reading": "あかとんぼ", "subtitle": "", "category_id": 3, "composer_id": null, "arranger": "テスト編曲者", "year": null, "year_label": "", "remarks": "",

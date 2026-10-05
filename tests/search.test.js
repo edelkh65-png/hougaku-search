@@ -61,6 +61,32 @@ describe('検索ページ', () => {
     assert.strictEqual(await count(page), '5件 / 全5曲');
   });
 
+  it('楽器のジャンルは折りたためる。箏・三絃・尺八は開き、ほかは閉じておく', async () => {
+    const { page } = await open();
+    await page.click('#advanced summary');
+    const groups = () => page.$$eval('.chip-group', (gs) => gs.map((g) => `${g.dataset.family}:${g.open ? '開' : '閉'}`));
+    assert.deepStrictEqual(await groups(), ['koto:開', 'shamisen:開', 'kan:開', 'voice:閉']);
+    // 閉じたジャンルの見出しには中の楽器名を出す
+    assert.strictEqual(await page.textContent('.chip-group[data-family="voice"] .chip-group-preview'), '歌');
+    assert.strictEqual(await page.isVisible('.chip[data-key="voice"]'), false);
+    // 見出しを押すと開き、選んでから閉じると「1つ選択中」
+    await page.click('.chip-group[data-family="voice"] > summary');
+    await page.click('.chip[data-key="voice"]');
+    await page.click('.chip-group[data-family="voice"] > summary');
+    assert.strictEqual(await page.textContent('.chip-group[data-family="voice"] .chip-group-selected'), '1つ選択中');
+    assert.strictEqual(await page.isVisible('.chip-group[data-family="voice"] .chip-group-selected'), true);
+    assert.strictEqual(await count(page), '1件 / 全5曲');
+  });
+
+  it('検索結果の楽器名や URL で閉じたジャンルの楽器を選ぶと、そのジャンルを開く', async () => {
+    const { page } = await open('?inst=voice');
+    assert.strictEqual(await page.$eval('.chip-group[data-family="voice"]', (g) => g.open), true);
+    const s = await open('?q=' + encodeURIComponent('ヴァイオレット'));
+    await s.page.click('.tag[data-key="voice"]');
+    assert.strictEqual(await s.page.$eval('.chip-group[data-family="voice"]', (g) => g.open), true);
+    assert.strictEqual(await s.page.getAttribute('.chip[data-key="voice"]', 'aria-pressed'), 'true');
+  });
+
   it('作曲者をよみで探して選ぶ', async () => {
     const { page } = await open();
     await page.click('#advanced summary');

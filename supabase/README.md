@@ -185,6 +185,6 @@ npm test
 
 ## 画面のファイルを更新したとき
 
-`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261006-1` のように版番号付きで読み込んでいます。
+`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261006-2` のように版番号付きで読み込んでいます。
 `style.css` や `*.js` を変更したら、この `v=` の値（日付など）を3つの HTML すべてで新しい値に書き換えてください。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。

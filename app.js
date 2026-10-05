@@ -112,8 +112,19 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
       const keys = Object.keys(INSTRUMENTS).filter((k) => INSTRUMENTS[k].family === family.key && usage.get(k));
       if (!keys.length) return;
 
-      const group = el('div', 'chip-group');
-      group.appendChild(el('p', 'chip-group-label', family.label));
+      // ジャンルごとに折りたためる。閉じているときは中の楽器名と、選んでいる数を見出しに出す
+      const group = el('details', 'chip-group');
+      group.dataset.family = family.key;
+      group.open = Boolean(family.open);
+      const summary = el('summary', 'chip-group-label');
+      summary.append(
+        el('span', 'chip-group-name', family.label),
+        el('span', 'chip-group-preview', keys.map((k) => INSTRUMENTS[k].label).join('・')),
+      );
+      const selectedBadge = el('span', 'chip-group-selected');
+      selectedBadge.hidden = true;
+      summary.appendChild(selectedBadge);
+      group.appendChild(summary);
 
       const chips = el('div', 'chips');
       keys.forEach((key) => {
@@ -177,11 +188,14 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
   }
 
   // count を渡すとパート数も設定する（省略時は、選択済みならそのまま、新しく選ぶなら指定なし）
+  // 閉じたジャンルの楽器を選んだとき（検索結果の楽器名・URL から）は、そのジャンルを開く
   function toggleInstrument(key, force, count) {
     const on = force === undefined ? !selected.has(key) : force;
     if (!on) selected.delete(key);
     else if (count !== undefined || !selected.has(key)) selected.set(key, count === undefined ? null : count);
     renderChip(key);
+    const group = els.groups.querySelector(`.chip-wrap[data-key="${key}"]`);
+    if (on && group) group.closest('.chip-group').open = true;
   }
 
   // パート数を1つ増減する。指定なし → 1 → 2 …、1 から減らすと指定なし
@@ -207,6 +221,13 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     value.classList.toggle('any', !count);
     wrap.querySelector('[data-step="-1"]').disabled = !count;
     wrap.querySelector('[data-step="1"]').disabled = count === MAX_PARTS;
+
+    // ジャンルの見出しに、選んでいる楽器の数を出す（閉じているときだけ表示）
+    const group = wrap.closest('.chip-group');
+    const n = [...group.querySelectorAll('.chip-wrap')].filter((w) => selected.has(w.dataset.key)).length;
+    const badge = group.querySelector('.chip-group-selected');
+    badge.textContent = `${n}つ選択中`;
+    badge.hidden = n === 0;
   }
 
   // 「箏2・十七絃・尺八1」のような、選んだ楽器の要約
