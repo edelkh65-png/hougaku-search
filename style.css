@@ -125,6 +125,28 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .lead { margin: 4px 0 0; color: var(--muted); }
 
+/* 見出しの右に置くリンク（検索ページの「舞台で探す」、舞台で探すページの「戻る」） */
+.header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 6px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-family: var(--mincho);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.header-link:hover { background: var(--accent); color: var(--accent-text); }
+.header-link svg { width: 30px; height: 16px; }
+.header-link svg circle { fill: currentColor; }
+.header-link svg line { stroke: currentColor; }
+
 /* ---- レイアウト ---- */
 .layout {
   max-width: 1200px;

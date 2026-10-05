@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<title>舞台で探す | 楽曲検索</title>
+<meta name="description" content="舞台に楽器を置いて、その編成で演奏できる邦楽曲を探せます">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
+<link rel="stylesheet" href="style.css?v=20261006-3">
+<link rel="stylesheet" href="stage.css?v=20261006-3">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-row">
+    <h1>舞台で探す</h1>
+    <a class="header-link" href="index.html">‹ 楽曲検索に戻る</a>
+  </div>
+  <p class="lead">舞台に楽器を置くと、その編成で演奏できる曲を探します</p>
+  <div class="koto" aria-hidden="true">
+    <span style="--i:0"></span><span style="--i:1"></span><span style="--i:2"></span><span style="--i:3"></span><span style="--i:4"></span><span style="--i:5"></span><span style="--i:6"></span><span style="--i:7"></span><span style="--i:8"></span><span style="--i:9"></span><span style="--i:10"></span><span style="--i:11"></span><span style="--i:12"></span>
+  </div>
+</header>
+
+<main class="stage-page">
+
+  <section class="stage-controls" aria-label="編成と年代">
+    <div class="stage-heading">
+      <h2>舞台</h2>
+      <button type="button" id="stage-clear" class="link-button">舞台を片付ける</button>
+    </div>
+    <div class="stage-box">
+      <svg id="stage" viewBox="0 0 640 260" role="group" aria-label="舞台に置いた楽器"></svg>
+      <p id="stage-empty" class="stage-empty">下の楽器を押して、舞台に置きましょう</p>
+    </div>
+    <p class="hint">楽器を押すと奏者が1人ずつ舞台に上がります。舞台の奏者を押すと1人下がります。</p>
+
+    <div id="palette" class="palette"></div>
+
+    <div class="stage-options">
+      <div class="match-mode" role="radiogroup" aria-label="置いた楽器との一致">
+        <span class="option-label">置いた楽器を</span>
+        <label><input type="radio" name="mode" value="include" checked> すべて含む</label>
+        <label><input type="radio" name="mode" value="exact"> 置いた楽器だけ</label>
+      </div>
+      <div class="match-mode" role="radiogroup" aria-label="奏者の人数との一致">
+        <span class="option-label">人数は</span>
+        <label><input type="radio" name="cmp" value="eq" checked> ちょうど</label>
+        <label><input type="radio" name="cmp" value="gte"> 以上</label>
+        <label><input type="radio" name="cmp" value="any"> 問わない</label>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="stage-heading">
+        <h2>年代で絞る</h2>
+        <button type="button" id="years-clear" class="link-button" hidden>年代の指定をやめる</button>
+      </div>
+      <p class="hint">棒を押すとその年代に絞ります。続けて別の棒を押すか、なぞると範囲になります。棒の高さは、今の舞台で演奏できる曲の数です。</p>
+      <div id="decades" class="decades"></div>
+      <p id="years-text" class="years-text"></p>
+    </div>
+  </section>
+
+  <section class="stage-results" aria-label="演奏できる曲">
+    <div class="stage-heading">
+      <h2>この舞台で演奏できる曲</h2>
+      <a id="open-search" class="link-button" href="index.html">検索ページでこの編成を開く</a>
+    </div>
+    <p id="stage-count" class="stage-count" aria-live="polite">読み込み中…</p>
+    <ul id="stage-list" class="stage-list"></ul>
+    <button type="button" id="stage-more" class="more" hidden></button>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p><a href="index.html">楽曲検索に戻る</a></p>
+</footer>
+
+<script src="config.js?v=20261006-3"></script>
+<script src="constants.js?v=20261006-3"></script>
+<script src="db.js?v=20261006-3"></script>
+<script src="stage.js?v=20261006-3"></script>
+</body>
+</html>

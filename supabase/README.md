@@ -147,6 +147,7 @@ node tools/build-artifact.js
 ```
 
 - `tools/out/music-search.html` ができるので、それを claude.ai のアーティファクトとして公開します。
+- claude.ai 版は検索ページ（と曲の詳細）だけで、「舞台で探す」ページは含みません。
 - 中身は `index.html` の画面・`style.css`・各 JS に、曲データと `tools/artifact-shim.js`（曲の詳細を同じページ内に表示する部品）を加えたものです。
 
 ## 7. 動作確認のテスト
@@ -175,7 +176,7 @@ npm test
 
 ## 画面のセキュリティ設定（CSP）
 
-3つの HTML の先頭にある `<meta http-equiv="Content-Security-Policy" …>` で、ページが読み込める先を次に限っています。万一不正なスクリプトが入り込むような不具合があっても、外部のスクリプトを読み込んだり、ほかのサイトへデータを送ったりできないようにするためのものです。
+4つの HTML の先頭にある `<meta http-equiv="Content-Security-Policy" …>` で、ページが読み込める先を次に限っています。万一不正なスクリプトが入り込むような不具合があっても、外部のスクリプトを読み込んだり、ほかのサイトへデータを送ったりできないようにするためのものです。
 
 - スクリプト・画像：このサイト自身のファイルだけ
 - 通信：このサイトと Supabase（`https://*.supabase.co`）だけ
@@ -185,6 +186,6 @@ npm test
 
 ## 画面のファイルを更新したとき
 
-`index.html`・`piece.html`・`admin.html` では、CSS・JS を `style.css?v=20261006-2` のように版番号付きで読み込んでいます。
-`style.css` や `*.js` を変更したら、この `v=` の値（日付など）を3つの HTML すべてで新しい値に書き換えてください。
+`index.html`・`piece.html`・`admin.html`・`stage.html` では、CSS・JS を `style.css?v=20261006-3` のように版番号付きで読み込んでいます。
+`style.css` や `*.js` を変更したら、この `v=` の値（日付など）を4つの HTML すべてで新しい値に書き換えてください。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。
