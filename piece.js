@@ -48,10 +48,10 @@
     return wrap;
   }
 
-  // 検索ページから来たときは、ブラウザの「戻る」と同じ動きにして検索結果の表示を保つ
+  // 検索ページ・舞台で探すページから来たときは、ブラウザの「戻る」と同じ動きにして表示を保つ
   try {
     const ref = new URL(document.referrer);
-    if (ref.origin === location.origin && /\/(index\.html)?$/.test(ref.pathname)) {
+    if (ref.origin === location.origin && /\/(index\.html|stage\.html)?$/.test(ref.pathname)) {
       back.href = ref.href;
       back.addEventListener('click', (e) => {
         e.preventDefault();
