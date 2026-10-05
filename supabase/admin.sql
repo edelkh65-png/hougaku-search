@@ -33,17 +33,16 @@ alter table pieces add column if not exists category_id bigint references catego
 create index if not exists pieces_category_id_idx on pieces (category_id);
 
 -- 以前の category 列があれば、その分類をマスタに追加して category_id に移す
+-- （列がない新しい環境では、if の中は実行されない）
 do $$
 begin
   if exists (select 1 from information_schema.columns
              where table_schema = 'public' and table_name = 'pieces' and column_name = 'category') then
-    execute $m$
-      insert into categories (name, sort_order)
-      select distinct category, 100 from pieces where nullif(btrim(category), '') is not null
-      on conflict (name) do nothing;
-      update pieces p set category_id = c.id
-      from categories c where c.name = p.category and p.category_id is null;
-    $m$;
+    insert into categories (name, sort_order)
+    select distinct category, 100 from pieces where nullif(btrim(category), '') is not null
+    on conflict (name) do nothing;
+    update pieces p set category_id = c.id
+    from categories c where c.name = p.category and p.category_id is null;
   end if;
 end $$;
 
@@ -81,6 +80,8 @@ end $$;
 -- piece の例：
 --   {"title": "春の海", "reading": "はるのうみ", "category": "現代曲", "composer": "宮城道雄", "composer_reading": "みやぎみちお", "year": 1929,
 --    "instruments": [{"key": "koto", "parts": 1}, {"key": "shakuhachi", "parts": 1}]}
+-- ※ 変数への代入は「変数 := (select …)」の形で書く。
+--    SELECT 文で直接変数に入れる書き方は、Supabase の SQL Editor が表の作成と誤認し、実行できなくなるため
 create or replace function add_piece(piece jsonb) returns bigint
 language plpgsql security invoker set search_path = public
 as $$
@@ -100,16 +101,18 @@ begin
     raise exception '曲名を入力してください' using errcode = '22023';
   end if;
 
-  select string_agg(e->>'key', ', ') into v_unknown
-  from jsonb_array_elements(coalesce(piece->'instruments', '[]')) as e
-  where not exists (select 1 from instruments i where i.key = e->>'key');
+  v_unknown := (
+    select string_agg(e->>'key', ', ')
+    from jsonb_array_elements(coalesce(piece->'instruments', '[]')) as e
+    where not exists (select 1 from instruments i where i.key = e->>'key')
+  );
   if v_unknown is not null then
     raise exception '登録されていない楽器があります: %', v_unknown using errcode = '22023';
   end if;
 
   -- 分類はマスタ（categories）にあるものだけ選べる
   if v_category_name is not null then
-    select id into v_category_id from categories where name = v_category_name;
+    v_category_id := (select id from categories where name = v_category_name);
     if v_category_id is null then
       raise exception '登録されていない分類です: %', v_category_name using errcode = '22023';
     end if;
@@ -118,7 +121,7 @@ begin
   -- 新しい作曲者は読みと一緒に追加。登録済みの作曲者は、読みが未登録のときだけ読みを補う
   if v_composer_name is not null then
     insert into composers (name, reading) values (v_composer_name, v_composer_reading) on conflict (name) do nothing;
-    select id into v_composer_id from composers where name = v_composer_name;
+    v_composer_id := (select id from composers where name = v_composer_name);
     if v_composer_reading is not null then
       update composers set reading = v_composer_reading
       where id = v_composer_id and coalesce(reading, '') = '';
