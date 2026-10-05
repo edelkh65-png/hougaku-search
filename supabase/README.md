@@ -1,31 +1,28 @@
 # Supabase で楽曲データを管理する
 
-楽曲検索アプリ（`music/`）のデータを Supabase のデータベースで管理するための手順です。
-`config.js` が空欄のあいだは `music/data.js` のデータで動くので、途中の段階でもアプリは壊れません。
+楽曲検索アプリ（`music/`）のデータは、Supabase のデータベースで管理しています。
+曲の追加・削除は登録ページ（`music/admin.html`）か、Supabase の **Table Editor** で行います。
 
-## 1. プロジェクトを作る
+## 1. 今の構成
 
-1. https://supabase.com でアカウントを作り、「New project」でプロジェクトを作成します。
-   - Region は日本から使うなら「Northeast Asia (Tokyo)」がおすすめです。
-2. 作成が終わるまで1〜2分待ちます。
+| テーブル | 内容 |
+|---|---|
+| `pieces` | 楽曲（曲名・よみがな・副題・分類・作曲者・編曲者・作曲年・備考） |
+| `piece_instruments` | 楽曲ごとの楽器編成 |
+| `instruments` | 楽器のマスタ（検索画面の楽器の並び・別名） |
+| `composers` | 作曲者のマスタ（名前・よみがな） |
+| `categories` | 分類のマスタ（名前・印の色・並び順・非表示）。→「4. 分類を管理する」 |
+| `editors` | 登録担当者（登録ページで追加・削除できる人） |
 
-## 2. テーブルを作ってデータを入れる
+- `schema.sql` はテーブルの定義の控えです。**実行すると全データが消える**ので、ゼロから作り直すとき以外は実行しないでください。
+- `admin.sql` は権限・登録用の関数・分類マスタの設定です。何度実行しても大丈夫で、変更があったときは SQL Editor で実行し直します。
 
-1. 左メニューの **SQL Editor** を開きます。
-2. `schema.sql` の中身をすべて貼り付けて **Run** を押します（テーブル作成）。
-   - 以前のテーブルがある場合は、削除して作り直します。
-3. 新しいクエリを開き、`seed.sql` の中身をすべて貼り付けて **Run** を押します（1,322曲の登録）。
-4. 左メニューの **Table Editor** で `pieces` を開き、1322行あれば成功です。
+## 2. アプリとの接続（config.js）
 
-`seed.sql` は schema.sql の直後に1回だけ実行します（2回実行すると id が重複してエラーになります。その場合は schema.sql からやり直してください）。
+`music/config.js` に、Supabase の **Project Settings → API Keys** にある次の2つを書いています。
 
-## 3. アプリと接続する
-
-1. 左メニューの **Project Settings → API Keys** を開きます。
-2. 次の2つを `music/config.js` に書き込みます。
-   - **Project URL**（`https://xxxxxxxx.supabase.co`）→ `url`
-   - **Publishable key**（`sb_publishable_...`。古いプロジェクトでは `anon` `public` キー）→ `key`
-3. `music/index.html` をブラウザで開き、1322曲が表示されれば接続完了です。
+- **Project URL**（`https://xxxxxxxx.supabase.co`）→ `url`
+- **Publishable key**（`sb_publishable_...`。古いプロジェクトでは `anon` `public` キー）→ `key`
 
 ```js
 window.MUSIC_DB = {
@@ -34,10 +31,10 @@ window.MUSIC_DB = {
 };
 ```
 
-Publishable key は公開して問題ないキーです。`schema.sql` で「誰でも読めるが、書き込みはできない」設定（Row Level Security）にしているため、このキーでデータを変更することはできません。
+Publishable key は公開して問題ないキーです。「誰でも読めるが、書き込みは登録担当者だけ」という設定（Row Level Security）にしているため、このキーでデータを変更することはできません。
 **secret キー / service_role キーは絶対に config.js に入れないでください**（全データを書き換えられてしまいます）。
 
-## 4. 楽曲登録ページを使えるようにする
+## 3. 楽曲登録ページを使えるようにする
 
 `music/admin.html` から、ログインした登録担当者が曲を追加・削除できます。
 
@@ -87,7 +84,7 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 - 最近登録した10曲の確認と削除
 - 招待メールからのパスワード設定、パスワードを忘れたときの再設定
 
-## 5. 分類を管理する（categories）
+## 4. 分類を管理する（categories）
 
 曲の分類（古典・現代曲など）は `categories` テーブルで管理しています。曲（`pieces`）は `category_id` で分類を指しているので、分類の名前や色を変えると、その分類の曲すべてに反映されます。
 
@@ -116,18 +113,10 @@ Publishable key は公開して問題ないキーです。`schema.sql` で「誰
 alter table pieces drop column if exists category;
 ```
 
-## 6. 楽曲を追加・編集する（その他の方法）
+## 5. Table Editor で直接編集する
 
-### まとめて更新する（CSV から作り直す）
+登録ページでできないこと（曲の内容の修正など）は、Supabase の **Table Editor** で行います。
 
-1. Excel などで `songs.csv` を編集します（列の並びは今のまま。Shift_JIS / UTF-8 どちらで保存しても読めます）。
-2. `node music/supabase/import-csv.js` を実行すると、`seed.sql` と `music/data.js` が作り直されます。
-3. SQL Editor で `schema.sql` → `seed.sql` → `admin.sql` の順に実行し直します。
-   - 分類の初期値（色・非表示）は `import-csv.js` の `CATEGORIES` で決めています。
-
-この方法では、Table Editor で直接追加・編集した内容は消えます。どちらか一方の方法で管理してください。
-
-### 1曲ずつ追加する（Table Editor）
 
 1. **composers**：作曲者がまだいなければ追加（`name`）
 2. **pieces**：楽曲を追加
@@ -145,30 +134,44 @@ alter table pieces drop column if exists category;
 
 変更はページを再読み込みすると反映されます。
 
-## CSV の楽器欄の読み取り方
+### バックアップ
 
-| 書き方 | 意味 | 人数 |
-|---|---|---|
-| `2` | 2パート | 2 |
-| `●` | 使用（人数の記載なし。古典曲など） | 不明 |
-| `独+2` | 独奏＋2パート | 3 |
-| `独` | 独奏 | 1 |
-| `(1)` | 省略可 | 1 |
-| `2(各AB)` `1(十八絃)` など | 最初の数字を人数とし、表記はそのまま表示 | 2, 1 |
-| `本,替` | 本手・替手 | 2 |
-| `合奏` `独+n` | 人数不定 | 不明 |
+曲のデータは Supabase にしかありません。ときどき **Table Editor** で各テーブル（`pieces`・`piece_instruments`・`composers`・`categories`）を開き、「Export → Export table as CSV」で手元に保存しておくと安心です。
 
-「笛」「他楽器」列の記述（Vc、締太鼓、唄 など）は、`import-csv.js` の `TOKEN_RULES` で楽器に対応づけています。どれにも当てはまらないものは「その他」になり、スクリプト実行時に一覧が表示されます。
+## 6. claude.ai 版を更新する
+
+claude.ai のページ（1ファイルの HTML）は、`music/tools/build-artifact.js` で作ります。claude.ai 版は Supabase に直接つながらないので、作った時点のデータが埋め込まれます。
+
+```sh
+node music/tools/build-artifact.js
+```
+
+- `music/tools/out/music-search.html` ができるので、それを claude.ai のアーティファクトとして公開します。
+- 中身は `index.html` の画面・`style.css`・各 JS に、曲データと `music/tools/artifact-shim.js`（曲の詳細を同じページ内に表示する部品）を加えたものです。
+
+## 7. 動作確認のテスト
+
+`music/tests/` に、ブラウザで画面を動かして確認するテストがあります。データは本物の Supabase ではなく、`music/tests/fixtures/` のテスト用データを使います。
+
+```sh
+cd music/tests
+npm install          # 初回のみ（Playwright を入れる）
+npx playwright install chromium   # 初回のみ（テスト用のブラウザ）
+npm test
+```
+
+画面や JS を変えたあとに実行して、すべて「ok」になることを確認します。
 
 ## ファイル
 
 | ファイル | 内容 |
 |---|---|
-| `songs.csv` | 楽曲リストの元データ |
-| `import-csv.js` | CSV から `seed.sql` と `../data.js` を生成するスクリプト |
-| `schema.sql` | テーブル定義と閲覧権限の設定 |
-| `admin.sql` | 登録ページ用の設定（登録担当者・書き込み権限・登録用の関数） |
-| `seed.sql` | 楽曲データの登録用 SQL（自動生成） |
+| `schema.sql` | テーブル定義の控え（実行すると全データが消える） |
+| `admin.sql` | 権限・登録用の関数・分類マスタの設定（何度実行しても可） |
+| `songs.csv` | 最初に登録した楽曲リストの元データ（記録として保管。今は使っていません） |
+| `../tools/build-artifact.js` | claude.ai 版を作るスクリプト |
+| `../tools/artifact-shim.js` | claude.ai 版だけで使う部品 |
+| `../tests/` | 動作確認のテスト |
 
 ## 画面のセキュリティ設定（CSP）
 
@@ -182,6 +185,6 @@ alter table pieces drop column if exists category;
 
 ## 画面のファイルを更新したとき
 
-`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261005-3` のように版番号付きで読み込んでいます。
-`style.css` や `*.js` を変更したら、この `v=` の値（日付など）を両方の HTML で新しい値に書き換えてください（3つの HTML すべて）。
+`music/index.html`・`music/piece.html`・`music/admin.html` では、CSS・JS を `style.css?v=20261006-1` のように版番号付きで読み込んでいます。
+`style.css` や `*.js` を変更したら、この `v=` の値（日付など）を3つの HTML すべてで新しい値に書き換えてください。
 書き換えないと、ブラウザに残っている古いファイルが使われ、表示が崩れることがあります。

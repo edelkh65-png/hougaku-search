@@ -1,0 +1,35 @@
+{
+  "_comment": "テスト用のデータ（Supabase の各テーブルの行と同じ形）。本番のデータとは関係ありません",
+  "instruments": [
+    { "id": 1, "key": "koto", "label": "箏", "family": "koto", "aliases": ["琴", "こと"], "sort_order": 0 },
+    { "id": 2, "key": "jushichigen", "label": "十七絃", "family": "koto", "aliases": ["十七弦"], "sort_order": 1 },
+    { "id": 3, "key": "sangen", "label": "三絃", "family": "shamisen", "aliases": ["三味線"], "sort_order": 2 },
+    { "id": 4, "key": "shakuhachi", "label": "尺八", "family": "kan", "aliases": [], "sort_order": 3 },
+    { "id": 5, "key": "voice", "label": "歌", "family": "voice", "aliases": [], "sort_order": 4 }
+  ],
+  "categories": [
+    { "id": 1, "name": "古典", "color": "indigo", "sort_order": 1, "hidden": false },
+    { "id": 2, "name": "現代曲", "color": "vermilion", "sort_order": 2, "hidden": false },
+    { "id": 3, "name": "編曲", "color": "green", "sort_order": 3, "hidden": false },
+    { "id": 4, "name": "SG", "color": "gray", "sort_order": 4, "hidden": true }
+  ],
+  "composers": [
+    { "id": 1, "name": "宮城道雄", "reading": "みやぎみちお" },
+    { "id": 2, "name": "沢井忠夫", "reading": "さわいただお" },
+    { "id": 3, "name": "八橋検校", "reading": "やつはしけんぎょう" }
+  ],
+  "pieces": [
+    { "id": 1, "title": "春の海", "reading": "はるのうみ", "subtitle": "", "category_id": 2, "composer_id": 1, "arranger": "", "year": 1929, "year_label": "", "remarks": "",
+      "instruments": [{ "key": "koto", "parts": 1 }, { "key": "shakuhachi", "parts": 1 }] },
+    { "id": 2, "title": "六段の調", "reading": "ろくだんのしらべ", "subtitle": "", "category_id": 1, "composer_id": 3, "arranger": "", "year": null, "year_label": "", "remarks": "",
+      "instruments": [{ "key": "koto", "parts": null, "notation": "箏 ●" }] },
+    { "id": 3, "title": "二つの群の為に", "reading": "ふたつのぐんのために", "subtitle": "", "category_id": 2, "composer_id": 2, "arranger": "", "year": null, "year_label": "", "remarks": "",
+      "instruments": [{ "key": "koto", "parts": 4, "is_solo": true, "notation": "箏 独+3" }, { "key": "jushichigen", "parts": 3, "is_solo": true, "notation": "十七絃 独+2" }] },
+    { "id": 4, "title": "赤とんぼ", "reading": "あかとんぼ", "subtitle": "", "category_id": 3, "composer_id": null, "arranger": "テスト編曲者", "year": null, "year_label": "", "remarks": "",
+      "instruments": [{ "key": "koto", "parts": 1 }] },
+    { "id": 5, "title": "ヴァイオレット", "reading": "ゔぁいおれっと", "subtitle": "十七絃の為の", "category_id": 2, "composer_id": 2, "arranger": "", "year": 2020, "year_label": "2020-22", "remarks": "",
+      "instruments": [{ "key": "jushichigen", "parts": 2 }, { "key": "voice", "parts": 1, "is_optional": true }] },
+    { "id": 6, "title": "隠し曲", "reading": "かくしきょく", "subtitle": "", "category_id": 4, "composer_id": 1, "arranger": "", "year": 2000, "year_label": "", "remarks": "",
+      "instruments": [{ "key": "koto", "parts": 2 }] }
+  ]
+}

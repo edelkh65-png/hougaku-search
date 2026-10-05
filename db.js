@@ -1,7 +1,7 @@
-// 楽曲データの読み込み（Supabase、未設定なら data.js のデータ）
+// 楽曲データの読み込み（Supabase。claude.ai 版はページに埋め込んだデータ）
 // 戻り値：{ instruments: {key: {label, family, aliases}}, pieces: [...] }
-//   piece.id は Supabase の pieces.id（data.js では並び順 + 1 で、seed.sql の id と同じ）
-//   piece.composerReading は作曲者名の読み（data.js では空。並び替えは作曲者名で代用）
+//   piece.id は Supabase の pieces.id
+//   piece.composerReading は作曲者名の読み
 //   piece.category は分類名、piece.categoryColor は印の色（categories.color）
 //   piece.instruments: [{ key, parts, notation, solo, optional }]
 //   非表示（hidden）の分類の曲は含まない（Supabase では読み取り権限の設定で除外される）
@@ -66,7 +66,7 @@ function pieceFromDbRow(row) {
 
 async function loadMusicData() {
   const config = musicDbConfig();
-  if (!config) return loadLocalData();
+  if (!config) return loadEmbeddedData();
   const [instruments, rows] = await Promise.all([
     loadDbInstruments(config),
     musicDbGetAll(config, `pieces?select=${PIECE_SELECT}&order=id`),
@@ -78,7 +78,7 @@ async function loadMusicData() {
 async function loadPiece(id) {
   const config = musicDbConfig();
   if (!config) {
-    const { instruments, pieces } = await loadLocalData();
+    const { instruments, pieces } = await loadEmbeddedData();
     return { instruments, piece: pieces.find((p) => p.id === id) || null };
   }
   const [instruments, rows] = await Promise.all([
@@ -88,24 +88,10 @@ async function loadPiece(id) {
   return { instruments, piece: rows.length ? pieceFromDbRow(rows[0]) : null };
 }
 
-async function loadLocalData() {
-  if (typeof PIECES === 'undefined') {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'data.js';
-      script.onload = resolve;
-      script.onerror = () => reject(new Error('data.js を読み込めませんでした'));
-      document.head.appendChild(script);
-    });
+// claude.ai 版：tools/build-artifact.js がページに埋め込んだデータ（loadMusicData の結果と同じ形）
+async function loadEmbeddedData() {
+  if (typeof MUSIC_EMBEDDED_DATA === 'undefined') {
+    throw new Error('config.js に Supabase の接続設定がありません');
   }
-  const categories = typeof CATEGORIES === 'undefined' ? {} : CATEGORIES;
-  const pieces = PIECES.map((p, i) => Object.assign({
-    id: i + 1, reading: '', subtitle: '', category: '', composer: '', composerReading: '', arranger: '', year: null, yearLabel: '', remarks: '',
-  }, p, {
-    categoryColor: p.category && categories[p.category] ? categories[p.category].color : '',
-    instruments: p.instruments.map(([key, parts, notation, solo, optional]) => ({
-      key, parts, notation: notation || '', solo: !!solo, optional: !!optional,
-    })),
-  })).filter((p) => !(p.category && categories[p.category] && categories[p.category].hidden));
-  return { instruments: INSTRUMENTS, pieces };
+  return MUSIC_EMBEDDED_DATA;
 }
