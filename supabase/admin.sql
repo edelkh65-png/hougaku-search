@@ -76,31 +76,26 @@ begin
   end loop;
 end $$;
 
--- 1曲分（曲の情報と楽器編成）をまとめて登録する。途中で失敗した場合は何も登録されない。
+-- ---- 曲の登録・修正 ----
 -- piece の例：
 --   {"title": "春の海", "reading": "はるのうみ", "category": "現代曲", "composer": "宮城道雄", "composer_reading": "みやぎみちお", "year": 1929,
 --    "instruments": [{"key": "koto", "parts": 1}, {"key": "shakuhachi", "parts": 1}]}
 -- ※ 変数への代入は「変数 := (select …)」の形で書く。
 --    SELECT 文で直接変数に入れる書き方は、Supabase の SQL Editor が表の作成と誤認し、実行できなくなるため
-create or replace function add_piece(piece jsonb) returns bigint
-language plpgsql security invoker set search_path = public
+
+-- 曲名と楽器を確認する（登録・修正で共通）
+create or replace function check_piece(piece jsonb) returns void
+language plpgsql stable security invoker set search_path = public
 as $$
 declare
-  v_composer_name text := nullif(btrim(piece->>'composer'), '');
-  v_composer_reading text := nullif(btrim(piece->>'composer_reading'), '');
-  v_category_name text := nullif(btrim(piece->>'category'), '');
-  v_category_id   bigint;
-  v_composer_id   bigint;
-  v_piece_id      bigint;
-  v_unknown       text;
+  v_unknown text;
 begin
   if not is_editor() then
-    raise exception '登録する権限がありません' using errcode = '42501';
+    raise exception '登録・修正する権限がありません' using errcode = '42501';
   end if;
   if coalesce(btrim(piece->>'title'), '') = '' then
     raise exception '曲名を入力してください' using errcode = '22023';
   end if;
-
   v_unknown := (
     select string_agg(e->>'key', ', ')
     from jsonb_array_elements(coalesce(piece->'instruments', '[]')) as e
@@ -109,24 +104,73 @@ begin
   if v_unknown is not null then
     raise exception '登録されていない楽器があります: %', v_unknown using errcode = '22023';
   end if;
+end;
+$$;
 
-  -- 分類はマスタ（categories）にあるものだけ選べる
-  if v_category_name is not null then
-    v_category_id := (select id from categories where name = v_category_name);
-    if v_category_id is null then
-      raise exception '登録されていない分類です: %', v_category_name using errcode = '22023';
-    end if;
+-- 分類名 → 分類の id（マスタ categories にある分類だけ選べる）
+create or replace function piece_category_id(p_name text) returns bigint
+language plpgsql stable security invoker set search_path = public
+as $$
+declare
+  v_id bigint;
+begin
+  if nullif(btrim(p_name), '') is null then
+    return null;
   end if;
+  v_id := (select id from categories where name = btrim(p_name));
+  if v_id is null then
+    raise exception '登録されていない分類です: %', p_name using errcode = '22023';
+  end if;
+  return v_id;
+end;
+$$;
 
-  -- 新しい作曲者は読みと一緒に追加。登録済みの作曲者は、読みが未登録のときだけ読みを補う
-  if v_composer_name is not null then
-    insert into composers (name, reading) values (v_composer_name, v_composer_reading) on conflict (name) do nothing;
-    v_composer_id := (select id from composers where name = v_composer_name);
-    if v_composer_reading is not null then
-      update composers set reading = v_composer_reading
-      where id = v_composer_id and coalesce(reading, '') = '';
-    end if;
+-- 作曲者名 → 作曲者の id。新しい作曲者は読みと一緒に追加し、
+-- 登録済みの作曲者は、読みが未登録のときだけ読みを補う
+create or replace function piece_composer_id(p_name text, p_reading text) returns bigint
+language plpgsql security invoker set search_path = public
+as $$
+declare
+  v_name text := nullif(btrim(p_name), '');
+  v_reading text := nullif(btrim(p_reading), '');
+  v_id bigint;
+begin
+  if v_name is null then
+    return null;
   end if;
+  insert into composers (name, reading) values (v_name, v_reading) on conflict (name) do nothing;
+  v_id := (select id from composers where name = v_name);
+  if v_reading is not null then
+    update composers set reading = v_reading where id = v_id and coalesce(reading, '') = '';
+  end if;
+  return v_id;
+end;
+$$;
+
+-- 曲の楽器編成を、piece の instruments の順に追加する
+create or replace function insert_piece_instruments(p_piece_id bigint, piece jsonb) returns void
+language sql security invoker set search_path = public
+as $$
+  insert into piece_instruments (piece_id, instrument_id, parts, is_solo, is_optional, notation, position)
+  select p_piece_id, i.id, (t.e->>'parts')::int,
+         coalesce((t.e->>'solo')::boolean, false), coalesce((t.e->>'optional')::boolean, false),
+         coalesce(btrim(t.e->>'notation'), ''), (t.ord - 1)::int
+  from jsonb_array_elements(coalesce(piece->'instruments', '[]')) with ordinality as t (e, ord)
+  join instruments i on i.key = t.e->>'key';
+$$;
+
+-- 1曲分（曲の情報と楽器編成）をまとめて登録する。途中で失敗した場合は何も登録されない
+create or replace function add_piece(piece jsonb) returns bigint
+language plpgsql security invoker set search_path = public
+as $$
+declare
+  v_category_id bigint;
+  v_composer_id bigint;
+  v_piece_id    bigint;
+begin
+  perform check_piece(piece);
+  v_category_id := piece_category_id(piece->>'category');
+  v_composer_id := piece_composer_id(piece->>'composer', piece->>'composer_reading');
 
   insert into pieces (title, reading, subtitle, category_id, composer_id, arranger, year, year_label, remarks)
   values (
@@ -142,19 +186,58 @@ begin
   )
   returning id into v_piece_id;
 
-  insert into piece_instruments (piece_id, instrument_id, parts, is_solo, is_optional, notation, position)
-  select v_piece_id, i.id, (e->>'parts')::int,
-         coalesce((e->>'solo')::boolean, false), coalesce((e->>'optional')::boolean, false),
-         coalesce(btrim(e->>'notation'), ''), (t.ord - 1)::int
-  from jsonb_array_elements(coalesce(piece->'instruments', '[]')) with ordinality as t (e, ord)
-  join instruments i on i.key = t.e->>'key';
-
+  perform insert_piece_instruments(v_piece_id, piece);
   return v_piece_id;
 end;
 $$;
 
+-- 登録済みの1曲（target_id）の情報と楽器編成をまとめて修正する。途中で失敗した場合は何も変わらない
+-- 楽器編成は、いったん消してから piece の内容で入れ直す
+create or replace function update_piece(target_id bigint, piece jsonb) returns bigint
+language plpgsql security invoker set search_path = public
+as $$
+declare
+  v_category_id bigint;
+  v_composer_id bigint;
+begin
+  perform check_piece(piece);
+  v_category_id := piece_category_id(piece->>'category');
+  v_composer_id := piece_composer_id(piece->>'composer', piece->>'composer_reading');
+
+  update pieces set
+    title       = btrim(piece->>'title'),
+    reading     = coalesce(btrim(piece->>'reading'), ''),
+    subtitle    = coalesce(btrim(piece->>'subtitle'), ''),
+    category_id = v_category_id,
+    composer_id = v_composer_id,
+    arranger    = coalesce(btrim(piece->>'arranger'), ''),
+    year        = (piece->>'year')::int,
+    year_label  = coalesce(btrim(piece->>'year_label'), ''),
+    remarks     = coalesce(btrim(piece->>'remarks'), '')
+  where id = target_id;
+  if not found then
+    raise exception '修正する曲が見つかりません（id: %）', target_id using errcode = 'P0002';
+  end if;
+
+  delete from piece_instruments where piece_instruments.piece_id = target_id;
+  perform insert_piece_instruments(target_id, piece);
+  return target_id;
+end;
+$$;
+
+-- ログインしていない人は、登録・修正の関数を使えない
+revoke execute on function check_piece(jsonb) from public, anon;
+revoke execute on function piece_category_id(text) from public, anon;
+revoke execute on function piece_composer_id(text, text) from public, anon;
+revoke execute on function insert_piece_instruments(bigint, jsonb) from public, anon;
 revoke execute on function add_piece(jsonb) from public, anon;
+revoke execute on function update_piece(bigint, jsonb) from public, anon;
+grant execute on function check_piece(jsonb) to authenticated;
+grant execute on function piece_category_id(text) to authenticated;
+grant execute on function piece_composer_id(text, text) to authenticated;
+grant execute on function insert_piece_instruments(bigint, jsonb) to authenticated;
 grant execute on function add_piece(jsonb) to authenticated;
+grant execute on function update_piece(bigint, jsonb) to authenticated;
 
 -- 登録担当者の追加：
 --   1. Authentication → Users → 「Add user」でメールアドレスとパスワードを登録（Auto Confirm User にチェック）

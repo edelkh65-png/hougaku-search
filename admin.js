@@ -42,12 +42,17 @@
     composerReadingRequired: $('composer-reading-required'),
     category: $('category'),
     rowTemplate: $('instrument-row'),
+    formTitle: $('form-title'),
+    editBanner: $('edit-banner'),
   };
 
   let session = readSession();
   let instruments = [];
   let composers = new Map(); // 作曲者名 → よみがな（未登録は ''）
   let confirmedDuplicate = false;
+  // 修正する曲（admin.html?edit=曲のid で開いたとき）。null なら新しい曲の登録
+  const editId = Number(new URLSearchParams(location.search).get('edit')) || null;
+  let editing = null;
 
   // ---- 共通 ----
   function el(tag, className, text) {
@@ -201,8 +206,74 @@
     els.form.hidden = false;
     els.recent.closest('.panel').hidden = false;
     showSection(els.editorSection);
+    if (editId && !editing) await startEdit(editId);
     if (!els.rows.children.length) addInstrumentRow();
     loadRecent();
+  }
+
+  // ---- 登録済みの曲の修正 ----
+  const PIECE_FOR_EDIT = 'id,title,reading,subtitle,arranger,year,year_label,remarks,'
+    + 'category:categories(name,hidden),composer:composers(name,reading),'
+    + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key))';
+
+  async function startEdit(id) {
+    const rows = await api(`pieces?select=${PIECE_FOR_EDIT}&id=eq.${id}`);
+    if (!rows.length) {
+      showNotice('修正する曲が見つかりませんでした。削除された可能性があります。', 'error');
+      return;
+    }
+    editing = rows[0];
+    fillForm(editing);
+    els.formTitle.textContent = '曲の情報を修正';
+    const lead = document.querySelector('.site-header .lead');
+    if (lead) lead.textContent = '登録済みの曲の情報を修正します';
+    const back = el('a', '', '詳細ページに戻る（修正しない）');
+    back.href = `piece.html?id=${editing.id}`;
+    const fresh = el('a', '', '新しい曲を登録する');
+    fresh.href = 'admin.html';
+    els.editBanner.replaceChildren(`「${editing.title}」の情報を修正しています。　`, back, '　', fresh);
+    els.editBanner.hidden = false;
+    els.save.textContent = '修正を保存する';
+    els.clear.textContent = '変更を取り消す';
+    document.title = `「${editing.title}」の修正 | 楽曲の登録`;
+  }
+
+  // 修正する曲の内容をフォームに入れる
+  function fillForm(row) {
+    els.form.reset();
+    const f = els.form.elements;
+    f.title.value = row.title;
+    f.reading.value = row.reading || '';
+    f.subtitle.value = row.subtitle || '';
+    f.arranger.value = row.arranger || '';
+    f.remarks.value = row.remarks || '';
+    f.year.value = row.year_label || (row.year ? String(row.year) : '');
+
+    // 非表示の分類（選択肢にない分類）の曲は、その分類を選択肢に加えておく
+    const category = row.category ? row.category.name : '';
+    if (category && ![...els.category.options].some((o) => o.value === category)) {
+      els.category.add(new Option(`${category}（検索ページに出さない分類）`, category));
+    }
+    els.category.value = category;
+
+    const composer = row.composer ? row.composer.name : '';
+    els.composer.value = composer;
+    composerPicker.setValue(composer);
+    syncComposerReading();
+
+    els.rows.replaceChildren();
+    row.piece_instruments.slice().sort((a, b) => a.position - b.position).forEach((pi) => {
+      const r = addInstrumentRow();
+      r.querySelector('[name="key"]').value = pi.instrument.key;
+      r.querySelector('[name="parts"]').value = pi.parts || '';
+      r.querySelector('[name="solo"]').checked = pi.is_solo;
+      r.querySelector('[name="optional"]').checked = pi.is_optional;
+      r.querySelector('[name="notation"]').value = pi.notation || '';
+    });
+    if (!els.rows.children.length) addInstrumentRow();
+    confirmedDuplicate = false;
+    els.duplicate.hidden = true;
+    showError(els.formError, '');
   }
 
   // 分類はマスタ（categories）から選ぶ。非表示（hidden）の分類は選択肢に出さない
@@ -354,8 +425,10 @@
     return { piece };
   }
 
+  // 同じ曲名の曲（修正中の曲そのものは除く）
   async function findDuplicates(piece) {
-    const rows = await api(`pieces?select=title,subtitle,composer:composers(name)&title=eq.${encodeURIComponent(piece.title)}`);
+    const self = editing ? `&id=neq.${editing.id}` : '';
+    const rows = await api(`pieces?select=title,subtitle,composer:composers(name)&title=eq.${encodeURIComponent(piece.title)}${self}`);
     return rows.map((r) => [r.title, r.subtitle && `（${r.subtitle}）`, r.composer && `／${r.composer.name}`].filter(Boolean).join(''));
   }
 
@@ -376,14 +449,15 @@
     }
 
     els.save.disabled = true;
-    els.save.textContent = '登録中…';
+    els.save.textContent = editing ? '保存中…' : '登録中…';
     try {
-      if (!confirmedDuplicate) {
+      // 修正で曲名を変えていなければ、同じ曲名の確認はしない
+      if (!confirmedDuplicate && !(editing && editing.title === piece.title)) {
         const duplicates = await findDuplicates(piece);
         if (duplicates.length) {
           els.duplicate.replaceChildren(
             el('p', '', `同じ曲名の曲がすでに${duplicates.length}件登録されています：${duplicates.join('、')}`),
-            el('p', '', '別の曲であれば、もう一度「登録する」を押すと登録します。'),
+            el('p', '', editing ? '別の曲であれば、もう一度「修正を保存する」を押すと保存します。' : '別の曲であれば、もう一度「登録する」を押すと登録します。'),
           );
           els.duplicate.hidden = false;
           confirmedDuplicate = true;
@@ -391,6 +465,12 @@
         }
       }
 
+      if (editing) {
+        // 修正したら詳細ページに戻る（「修正を保存しました」と表示される）
+        await api('rpc/update_piece', { method: 'POST', body: { target_id: editing.id, piece } });
+        location.href = `piece.html?id=${editing.id}&updated=1`;
+        return;
+      }
       await api('rpc/add_piece', { method: 'POST', body: { piece } });
       showNotice(`「${piece.title}」を登録しました。`, 'success',
         { text: '検索ページで確認する', href: `index.html?q=${encodeURIComponent(piece.title)}` });
@@ -402,10 +482,10 @@
       loadRecent();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
-      if (err.status !== 401) showError(els.formError, `登録できませんでした：${err.message}`);
+      if (err.status !== 401) showError(els.formError, `${editing ? '保存' : '登録'}できませんでした：${err.message}`);
     } finally {
       els.save.disabled = false;
-      els.save.textContent = '登録する';
+      els.save.textContent = editing ? '修正を保存する' : '登録する';
     }
   });
 
@@ -420,7 +500,8 @@
     els.duplicate.hidden = true;
     showError(els.formError, '');
   }
-  els.clear.addEventListener('click', clearForm);
+  // 修正中は「変更を取り消す」で、読み込んだときの内容に戻す
+  els.clear.addEventListener('click', () => (editing ? fillForm(editing) : clearForm()));
 
   // ---- 最近登録した曲 ----
   async function loadRecent() {
@@ -472,8 +553,10 @@
       cancel.hidden = true;
     });
 
+    const fix = el('a', 'secondary-link', '修正');
+    fix.href = `admin.html?edit=${row.id}`;
     const buttons = el('div', 'recent-actions');
-    buttons.append(cancel, del);
+    buttons.append(fix, cancel, del);
     li.appendChild(buttons);
     return li;
   }

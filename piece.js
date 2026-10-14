@@ -199,10 +199,35 @@
       article.appendChild(related);
     }
 
+    // 登録担当者がログイン中（登録ページでログインしたタブ）なら、修正への入り口を出す
+    if (isEditorSession()) {
+      const edit = el('p', 'edit-link');
+      edit.appendChild(link('この曲の情報を修正する（登録担当者）', `admin.html?edit=${piece.id}`));
+      article.appendChild(edit);
+    }
+
     main.appendChild(article);
   }
 
-  const id = Number(new URLSearchParams(location.search).get('id'));
+  // 登録ページのログイン情報（admin.js が sessionStorage に保存）があるか
+  function isEditorSession() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('music-admin-session'));
+      return Boolean(saved && saved.access_token && !saved.mustSetPassword);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  const params = new URLSearchParams(location.search);
+  const id = Number(params.get('id'));
+  // 登録ページで修正を保存して戻ってきたとき
+  if (params.get('updated') === '1') {
+    const done = el('p', 'notice notice-success', '修正を保存しました。');
+    done.setAttribute('role', 'status');
+    main.insertBefore(done, status);
+    try { history.replaceState(null, '', `piece.html?id=${id}`); } catch (e) { /* 表示はそのまま */ }
+  }
   if (!Number.isInteger(id) || id <= 0) {
     showMessage('曲が指定されていません。検索結果から曲を選んでください。');
     return;
