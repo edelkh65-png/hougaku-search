@@ -57,6 +57,58 @@ describe('登録ページ', () => {
     await page.waitForFunction(() => document.querySelector('#recent li strong') && document.querySelector('#recent li strong').textContent.startsWith('テスト登録曲'));
   });
 
+  it('admin.html?edit=曲の id で、登録済みの曲を読み込んで修正できる', async () => {
+    const s = await t.newPage();
+    const { page, log } = s;
+    await page.goto(`${t.base}admin.html?edit=3`);
+    await page.fill('#email', EDITOR.email);
+    await page.fill('#password', EDITOR.password);
+    await page.click('#login-form button[type="submit"]');
+    await page.waitForSelector('#edit-banner:not([hidden])');
+    assert.strictEqual(await page.textContent('#form-title'), '曲の情報を修正');
+    assert.strictEqual(await page.inputValue('#title'), '二つの群の為に');
+    assert.strictEqual(await page.inputValue('#category'), '現代曲');
+    assert.strictEqual(await page.textContent('#composer-selected .combo-name'), '沢井忠夫');
+    assert.strictEqual(await page.inputValue('#composer-reading'), 'さわいただお');
+    assert.deepStrictEqual(await page.$$eval('.instrument-row', (rows) => rows.map((r) => [
+      r.querySelector('[name="key"]').value, r.querySelector('[name="parts"]').value,
+      r.querySelector('[name="solo"]').checked, r.querySelector('[name="notation"]').value])),
+    [['koto', '4', true, '箏 独+3'], ['jushichigen', '3', true, '十七絃 独+2']]);
+    assert.strictEqual(await page.textContent('#save'), '修正を保存する');
+
+    // 変更を取り消すと、読み込んだ内容に戻る
+    await page.fill('#title', 'いったん変えた');
+    await page.click('#clear');
+    assert.strictEqual(await page.inputValue('#title'), '二つの群の為に');
+
+    // 曲名・作曲年・楽器を変えて保存すると、詳細ページに戻って「修正を保存しました」
+    await page.fill('#title', '二つの群の為に（改訂版）');
+    await page.fill('#year', '1975');
+    await page.locator('.instrument-row .remove').nth(1).click();
+    await page.click('#save');
+    await page.waitForURL(/piece\.html/);
+    await page.waitForSelector('.detail-facts');
+    assert.deepStrictEqual(log.updatePiece.map((u) => [u.target_id, u.piece.title, u.piece.year, u.piece.instruments.length]),
+      [[3, '二つの群の為に（改訂版）', 1975, 1]]);
+    assert.strictEqual(await page.textContent('.notice-success'), '修正を保存しました。');
+    assert.strictEqual(await page.textContent('h1'), '二つの群の為に（改訂版）');
+    assert.match(page.url(), /piece\.html\?id=3$/);
+    // ログイン中なので、詳細ページに修正への入り口がある
+    assert.strictEqual(await page.getAttribute('.edit-link a', 'href'), 'admin.html?edit=3');
+    assert.deepStrictEqual(s.errors, []);
+  });
+
+  it('ログインしていなければ、詳細ページに修正の入り口は出ない。最近の曲には「修正」がある', async () => {
+    const { page } = await t.newPage();
+    await page.goto(`${t.base}piece.html?id=1`);
+    await page.waitForSelector('.detail-facts');
+    assert.strictEqual(await page.$$('.edit-link').then((x) => x.length), 0);
+    const s = await t.newPage();
+    await login(s);
+    await s.page.waitForSelector('#recent li');
+    assert.match(await s.page.getAttribute('#recent li .secondary-link', 'href'), /^admin\.html\?edit=\d+$/);
+  });
+
   it('招待のリンクから開くと、パスワードを決めて登録画面に進む', async () => {
     const { page, log } = await t.newPage();
     await page.goto(`${t.base}admin.html#access_token=a&refresh_token=r&expires_in=3600&type=invite`);

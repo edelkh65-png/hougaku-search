@@ -63,6 +63,7 @@ function queryRows(rows, params) {
     const [op, ...rest] = value.split('.');
     const v = rest.join('.');
     if (op === 'eq') out = out.filter((r) => String(r[key]) === v);
+    if (op === 'neq') out = out.filter((r) => String(r[key]) !== v);
     if (op === 'is') out = out.filter((r) => String(r[key]) === v);
   }
   if (params.get('order') === 'id.desc') out = out.slice().sort((a, b) => b.id - a.id);
@@ -73,7 +74,7 @@ function queryRows(rows, params) {
 
 // Supabase のふり。page.route で REST と認証の通信に答え、送られた内容を記録する
 function mockSupabase(db, options = {}) {
-  const log = { addPiece: [], passwords: [], recover: [] };
+  const log = { addPiece: [], updatePiece: [], passwords: [], recover: [] };
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
   async function handle(route) {
@@ -108,6 +109,25 @@ function mockSupabase(db, options = {}) {
       const category = db.categories.find((c) => c.name === body.piece.category);
       db.pieces.push(toPieceRow(db, { id, title: body.piece.title, reading: body.piece.reading, category_id: category && category.id, instruments: body.piece.instruments }));
       return json(route, id);
+    }
+    if (table === 'rpc/update_piece') {
+      log.updatePiece.push(body);
+      const index = db.pieces.findIndex((r) => r.id === body.target_id);
+      if (index < 0) return json(route, { code: 'P0002', message: '修正する曲が見つかりません' }, 404);
+      const pc = body.piece;
+      const category = db.categories.find((c) => c.name === pc.category);
+      let composer = db.composers.find((c) => c.name === pc.composer);
+      if (pc.composer && !composer) {
+        composer = { id: Math.max(...db.composers.map((c) => c.id)) + 1, name: pc.composer, reading: pc.composer_reading };
+        db.composers.push(composer);
+      }
+      db.pieces[index] = toPieceRow(db, {
+        id: body.target_id, title: pc.title, reading: pc.reading, subtitle: pc.subtitle, arranger: pc.arranger,
+        year: pc.year, year_label: pc.year_label, remarks: pc.remarks,
+        category_id: category && category.id, composer_id: composer && composer.id,
+        instruments: pc.instruments.map((i) => ({ key: i.key, parts: i.parts, is_solo: i.solo, is_optional: i.optional, notation: i.notation })),
+      });
+      return json(route, body.target_id);
     }
     if (table === 'editors') return json(route, authed ? [{ user_id: 'editor' }] : []);
     if (table === 'instruments') return json(route, queryRows(db.instruments, params));
