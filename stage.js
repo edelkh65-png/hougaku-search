@@ -226,27 +226,7 @@
   }
 
   function miniStage(piece) {
-    const dots = [];
-    piece.instruments.forEach((i) => {
-      for (let k = 0; k < (i.parts || 1); k++) dots.push({ fam: family(i.key), unknown: !i.parts });
-    });
-    const s = svg('svg', { viewBox: '0 0 96 38', class: 'mini', 'aria-hidden': 'true' });
-    s.appendChild(svg('line', { x1: 4, y1: 36, x2: 92, y2: 36 }));
-    const n = dots.length;
-    const r = n > 12 ? 2.6 : 3.4;
-    dots.forEach((d, i) => {
-      const t = n === 1 ? 0.5 : i / (n - 1);
-      const a = Math.PI * (0.1 + 0.8 * t);
-      const rr = n > 8 ? (i % 2 ? 0.62 : 0.88) : 0.8;
-      s.appendChild(svg('circle', {
-        cx: (48 - Math.cos(a) * 42 * rr).toFixed(1),
-        cy: (34 - Math.sin(a) * 28 * rr).toFixed(1),
-        r,
-        class: `fam-${d.fam}${d.unknown ? ' is-unknown' : ''}`,
-        'stroke-width': 1.2,
-      }));
-    });
-    return s;
+    return createMiniStage(piece.instruments, family);
   }
 
   function renderItem(p) {

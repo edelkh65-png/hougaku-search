@@ -474,7 +474,6 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 .card-link::after { content: ""; position: absolute; inset: 0; }
 .card .tag { position: relative; z-index: 1; }
 .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.meta { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* 分類は朱印（落款）風に */
 .badge {
@@ -500,7 +499,23 @@ input[type="search"], input[type="number"], input[type="text"], input[type="emai
 .card-title { margin: 10px 0 0; font-family: var(--mincho); font-size: 1.1rem; line-height: 1.4; text-wrap: balance; overflow-wrap: anywhere; }
 .card-subtitle { display: block; font-size: 0.8rem; font-weight: 400; color: var(--muted); }
 .card-reading { margin: 2px 0 0; font-size: 0.78rem; color: var(--muted); }
-.card-composer { margin: 6px 0 10px; font-size: 0.9rem; }
+.card-composer { margin: 6px 0 0; font-size: 0.9rem; }
+
+/* カードの上段：左に曲名など、右に編成の小さな舞台図・パート数・作曲年 */
+.card-body { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+.card-main { flex: 1; min-width: 0; }
+.card-aside {
+  flex: none;
+  width: 104px;
+  padding: 2px 0 2px 14px;
+  border-left: 1px dashed var(--line);
+  text-align: center;
+}
+.card-aside .mini { display: block; width: 96px; height: 38px; margin: 0 auto; }
+.card-parts { margin: 4px 0 0; line-height: 1.1; }
+.card-parts-n { font-family: var(--mincho); font-size: 1.7rem; font-weight: 700; }
+.card-parts-unit { margin-left: 2px; font-size: 0.72rem; color: var(--muted); }
+.card-year { margin: 4px 0 0; font-family: var(--mincho); font-size: 0.82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 .tags { list-style: none; margin: auto 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px; }
 .tag {
@@ -827,3 +842,52 @@ input[readonly] { background: var(--surface); color: var(--muted); }
   .has-arranger .fact:not(.fact-wide) { flex-basis: calc((100% - 16px) / 3); }
   .fact::before { left: 12px; }
 }
+
+/* 楽器の系統ごとの色（検索カード・舞台で探すの小さな舞台図、舞台の奏者） */
+:root {
+  --fam-koto: #2a2723;        /* 墨 */
+  --fam-shamisen: #8a7f6f;    /* 利休鼠 */
+  --fam-kan: #b23a2a;         /* 朱 */
+  --fam-percussion: #b9a98a;  /* 砂色 */
+  --fam-voice: #2b4c6f;       /* 藍 */
+  --fam-western: #3a6b4a;     /* 千歳緑 */
+  --fam-other: #9a9288;
+  --seat-text: #fbf8f1;
+  --stage-floor: #2a2723;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fam-koto: #e6cf98;      /* 金 */
+    --fam-shamisen: #d8ccb4;
+    --fam-kan: #e0735c;
+    --fam-percussion: #9c8a74;
+    --fam-voice: #8fb0d4;
+    --fam-western: #8fc0a0;
+    --fam-other: #8f877c;
+    --seat-text: #1b1a17;
+    --stage-floor: #c9a45c;
+  }
+}
+:root[data-theme="dark"] {
+  --fam-koto: #e6cf98;
+  --fam-shamisen: #d8ccb4;
+  --fam-kan: #e0735c;
+  --fam-percussion: #9c8a74;
+  --fam-voice: #8fb0d4;
+  --fam-western: #8fc0a0;
+  --fam-other: #8f877c;
+  --seat-text: #1b1a17;
+  --stage-floor: #c9a45c;
+}
+.fam-koto { --fam: var(--fam-koto); }
+.fam-shamisen { --fam: var(--fam-shamisen); }
+.fam-kan { --fam: var(--fam-kan); }
+.fam-percussion { --fam: var(--fam-percussion); }
+.fam-voice { --fam: var(--fam-voice); }
+.fam-western { --fam: var(--fam-western); }
+.fam-other { --fam: var(--fam-other); }
+
+/* 小さな舞台図（ministage.js） */
+.mini circle { fill: var(--fam); stroke: var(--fam); }
+.mini circle.is-unknown { fill: none; }
+.mini line { stroke: var(--line); }

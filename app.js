@@ -333,17 +333,31 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     return badge;
   }
 
+  // カードの右側：編成の小さな舞台図・パート数・作曲年
+  function cardAside(piece) {
+    const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
+    if (!piece.instruments.length && !year) return null;
+    const aside = el('div', 'card-aside');
+    if (piece.instruments.length) {
+      aside.appendChild(createMiniStage(piece.instruments, (key) => INSTRUMENTS[key].family));
+      const parts = el('p', 'card-parts');
+      if (piece.players) {
+        parts.append(el('span', 'card-parts-n', String(piece.players)), el('span', 'card-parts-unit', 'パート'));
+      } else {
+        parts.appendChild(el('span', 'card-parts-unit', 'パート数不明'));
+      }
+      aside.appendChild(parts);
+    }
+    if (year) aside.appendChild(el('p', 'card-year', `${year}年`));
+    return aside;
+  }
+
   function renderCard(piece) {
     const li = el('li', 'card');
+    const body = el('div', 'card-body');
+    const main = el('div', 'card-main');
 
-    const top = el('div', 'card-top');
-    top.appendChild(piece.category ? categoryBadge(piece) : el('span'));
-    const meta = [];
-    const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
-    if (year) meta.push(`${year}年`);
-    if (piece.players) meta.push(`${piece.players}パート`);
-    top.appendChild(el('span', 'meta', meta.join('・')));
-    li.appendChild(top);
+    if (piece.category) main.appendChild(el('div', 'card-top')).appendChild(categoryBadge(piece));
 
     // 曲名のリンクがカード全体を覆い、どこを押しても詳細ページへ移る（楽器名のボタンは除く）
     const title = el('h2', 'card-title');
@@ -351,13 +365,18 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     link.href = `piece.html?id=${piece.id}`;
     title.appendChild(link);
     if (piece.subtitle) title.appendChild(el('span', 'card-subtitle', piece.subtitle));
-    li.appendChild(title);
-    if (piece.reading) li.appendChild(el('p', 'card-reading', piece.reading));
+    main.appendChild(title);
+    if (piece.reading) main.appendChild(el('p', 'card-reading', piece.reading));
 
     const people = [];
     if (piece.composer) people.push(piece.composer);
     if (piece.arranger) people.push(`編曲：${piece.arranger}`);
-    if (people.length) li.appendChild(el('p', 'card-composer', people.join('　')));
+    if (people.length) main.appendChild(el('p', 'card-composer', people.join('　')));
+
+    body.appendChild(main);
+    const aside = cardAside(piece);
+    if (aside) body.appendChild(aside);
+    li.appendChild(body);
 
     if (piece.instruments.length) {
       const tags = el('ul', 'tags');
