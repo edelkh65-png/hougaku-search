@@ -33,19 +33,15 @@ describe('検索ページ', () => {
     assert.strictEqual(await page.$eval('.badge', (b) => b.dataset.color), 'vermilion');
   });
 
-  it('カードの右側に、編成の小さな舞台図・パート数・作曲年を出す', async () => {
+  it('カードは曲名と作曲者を点線でつないで1行に並べ、作曲年・パート数は上の行に出す', async () => {
     const { page } = await open('?q=' + encodeURIComponent('春の海'));
-    const aside = await page.$eval('.card .card-aside', (a) => ({
-      dots: a.querySelectorAll('.mini circle').length,
-      parts: a.querySelector('.card-parts').textContent,
-      year: a.querySelector('.card-year').textContent,
+    const card = await page.$eval('.card', (c) => ({
+      meta: c.querySelector('.card-top .meta').textContent,
+      title: c.querySelector('.card-headline .card-title').textContent,
+      leader: !!c.querySelector('.card-headline .card-leader'),
+      composer: c.querySelector('.card-headline .card-composer').textContent,
     }));
-    assert.deepStrictEqual(aside, { dots: 2, parts: '2パート', year: '1929年' });
-    // パート数が分からない曲は「パート数不明」と、人数不明の奏者を白抜きの点で
-    await page.fill('#q', '六段');
-    await page.waitForFunction(() => document.querySelector('.card-link') && document.querySelector('.card-link').textContent === '六段の調');
-    assert.strictEqual(await page.textContent('.card .card-parts'), 'パート数不明');
-    assert.strictEqual(await page.$$eval('.card .mini circle.is-unknown', (c) => c.length), 2);
+    assert.deepStrictEqual(card, { meta: '1929年・2パート', title: '春の海', leader: true, composer: '宮城道雄' });
   });
 
   it('キーワードは表記ゆれを吸収する（ヴァ／ば、絃／弦、カタカナ／ひらがな）', async () => {

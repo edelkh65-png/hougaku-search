@@ -57,7 +57,6 @@ function build(data) {
       + `const MUSIC_EMBEDDED_DATA = ${JSON.stringify(data)};\n`,
     read('db.js'),
     read('combo.js'),
-    read('ministage.js'),
     read('app.js'),
     shim.replace('/* PIECE_JS */', () => read('piece.js').trim()),
   ].join('\n');
