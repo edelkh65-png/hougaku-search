@@ -590,6 +590,10 @@ input[readonly] { background: var(--surface); color: var(--muted); }
 .notice-edit { background: var(--accent-soft); color: var(--text); }
 .notice-edit a { margin-left: 4px; }
 .secondary-link { font-size: 0.85rem; color: var(--accent); }
+/* 登録ページ：一覧にない楽器の登録 */
+.new-instrument { margin: 0 0 12px; padding: 14px 16px; border: 1px dashed var(--accent); border-radius: var(--radius); background: var(--accent-soft); display: grid; gap: 10px; }
+.new-instrument-title { margin: 0; font-weight: 700; }
+.new-instrument .hint { margin: 0; }
 /* 詳細ページの「この曲の情報を修正する」（登録担当者がログイン中のときだけ表示） */
 .edit-link { margin: 24px 0 0; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 0.88rem; text-align: right; }
 .edit-link a { color: var(--accent); }

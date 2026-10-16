@@ -44,6 +44,12 @@
     composerReadingRequired: $('composer-reading-required'),
     category: $('category'),
     rowTemplate: $('instrument-row'),
+    newInstrument: $('new-instrument'),
+    newInstrumentLabel: $('new-instrument-label'),
+    newInstrumentFamily: $('new-instrument-family'),
+    newInstrumentError: $('new-instrument-error'),
+    newInstrumentSave: $('new-instrument-save'),
+    newInstrumentCancel: $('new-instrument-cancel'),
     formTitle: $('form-title'),
     editBanner: $('edit-banner'),
   };
@@ -344,16 +350,25 @@
   });
 
   // ---- 楽器編成の入力行 ----
-  function addInstrumentRow() {
-    const row = els.rowTemplate.content.firstElementChild.cloneNode(true);
-    const select = row.querySelector('select');
-    select.add(new Option('楽器を選択', ''));
+  const NEW_INSTRUMENT = '__new'; // 楽器の選択肢の最後「一覧にない楽器を追加…」
+
+  // 楽器の選択肢を作る（ジャンルごと。選んでいた楽器はそのまま）
+  function fillInstrumentSelect(select) {
+    const current = select.value;
+    select.replaceChildren(new Option('楽器を選択', ''));
     FAMILIES.forEach((family) => {
       const group = document.createElement('optgroup');
       group.label = family.label;
       instruments.filter((i) => i.family === family.key).forEach((i) => group.appendChild(new Option(i.label, i.key)));
       if (group.children.length) select.appendChild(group);
     });
+    select.add(new Option('＋ 一覧にない楽器を追加…', NEW_INSTRUMENT));
+    select.value = current;
+  }
+
+  function addInstrumentRow() {
+    const row = els.rowTemplate.content.firstElementChild.cloneNode(true);
+    fillInstrumentSelect(row.querySelector('select'));
     els.rows.appendChild(row);
     return row;
   }
@@ -363,10 +378,73 @@
     if (e.target.closest('.remove')) e.target.closest('.instrument-row').remove();
   });
   // 楽器を選んだとき、人数が空欄なら1を入れる（人数が分からない楽器は、空欄に戻せる）
+  function setDefaultParts(row) {
+    const parts = row.querySelector('[name="parts"]');
+    if (!parts.value) parts.value = '1';
+  }
   els.rows.addEventListener('change', (e) => {
     if (e.target.name !== 'key' || !e.target.value) return;
-    const parts = e.target.closest('.instrument-row').querySelector('[name="parts"]');
-    if (!parts.value) parts.value = '1';
+    const row = e.target.closest('.instrument-row');
+    if (e.target.value === NEW_INSTRUMENT) {
+      e.target.value = '';
+      openNewInstrument(row);
+      return;
+    }
+    setDefaultParts(row);
+  });
+
+  // ---- 一覧にない楽器の登録（楽器のマスタ instruments に追加） ----
+  let newInstrumentRow = null; // 登録した楽器を選ぶ行
+  FAMILIES.forEach((family) => els.newInstrumentFamily.add(new Option(family.label, family.key)));
+
+  function openNewInstrument(row) {
+    newInstrumentRow = row;
+    els.newInstrumentLabel.value = '';
+    els.newInstrumentFamily.value = 'other';
+    showError(els.newInstrumentError, '');
+    els.newInstrument.hidden = false;
+    els.newInstrumentLabel.focus();
+  }
+
+  function closeNewInstrument() {
+    els.newInstrument.hidden = true;
+    const select = newInstrumentRow && newInstrumentRow.isConnected ? newInstrumentRow.querySelector('select') : null;
+    newInstrumentRow = null;
+    if (select) select.focus();
+  }
+
+  async function saveNewInstrument() {
+    const label = els.newInstrumentLabel.value.trim();
+    if (!label) {
+      showError(els.newInstrumentError, '楽器名を入力してください。');
+      els.newInstrumentLabel.focus();
+      return;
+    }
+    els.newInstrumentSave.disabled = true;
+    try {
+      const existed = instruments.find((i) => i.label === label);
+      const key = await api('rpc/add_instrument', { method: 'POST', body: { p_label: label, p_family: els.newInstrumentFamily.value } });
+      instruments = await api('instruments?select=key,label,family&order=sort_order,id');
+      els.rows.querySelectorAll('.instrument-row select').forEach(fillInstrumentSelect);
+      const row = newInstrumentRow && newInstrumentRow.isConnected ? newInstrumentRow : addInstrumentRow();
+      row.querySelector('select').value = key;
+      setDefaultParts(row);
+      showNotice(existed ? `「${label}」はすでに一覧にあったので、その楽器を選びました。` : `楽器「${label}」を登録して選びました。`, 'success');
+      closeNewInstrument();
+    } catch (err) {
+      if (err.status !== 401) showError(els.newInstrumentError, `登録できませんでした：${err.message}`);
+    } finally {
+      els.newInstrumentSave.disabled = false;
+    }
+  }
+
+  els.newInstrumentSave.addEventListener('click', saveNewInstrument);
+  els.newInstrumentCancel.addEventListener('click', closeNewInstrument);
+  // 楽器名の欄で Enter を押したときは、曲の登録ではなく楽器の登録にする
+  els.newInstrumentLabel.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    saveNewInstrument();
   });
 
   // ---- 入力の読み取りと確認 ----
@@ -501,6 +579,7 @@
 
   function clearForm() {
     els.form.reset();
+    els.newInstrument.hidden = true;
     els.rows.replaceChildren();
     addInstrumentRow();
     els.composer.value = '';

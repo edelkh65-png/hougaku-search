@@ -74,7 +74,7 @@ function queryRows(rows, params) {
 
 // Supabase のふり。page.route で REST と認証の通信に答え、送られた内容を記録する
 function mockSupabase(db, options = {}) {
-  const log = { addPiece: [], updatePiece: [], passwords: [], recover: [] };
+  const log = { addPiece: [], updatePiece: [], addInstrument: [], passwords: [], recover: [] };
   const json = (route, body, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 
   async function handle(route) {
@@ -128,6 +128,15 @@ function mockSupabase(db, options = {}) {
         instruments: pc.instruments.map((i) => ({ key: i.key, parts: i.parts, is_solo: i.solo, is_optional: i.optional, notation: i.notation })),
       });
       return json(route, body.target_id);
+    }
+    if (table === 'rpc/add_instrument') {
+      const label = (body.p_label || '').trim();
+      const found = db.instruments.find((i) => i.label === label);
+      if (found) return json(route, found.key);
+      const id = Math.max(...db.instruments.map((i) => i.id)) + 1;
+      db.instruments.push({ id, key: `inst${id}`, label, family: body.p_family, aliases: [], sort_order: id });
+      log.addInstrument.push(body);
+      return json(route, `inst${id}`);
     }
     if (table === 'editors') return json(route, authed ? [{ user_id: 'editor' }] : []);
     if (table === 'instruments') return json(route, queryRows(db.instruments, params));

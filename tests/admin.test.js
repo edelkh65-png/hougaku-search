@@ -69,6 +69,36 @@ describe('登録ページ', () => {
     await page.waitForFunction(() => document.querySelector('#recent li strong') && document.querySelector('#recent li strong').textContent.startsWith('テスト登録曲'));
   });
 
+  it('一覧にない楽器を登録して、その行で選べる', async () => {
+    const s = await t.newPage();
+    await login(s);
+    const { page, log } = s;
+    const select = page.locator('.instrument-row select').first();
+    await select.selectOption('__new');
+    await page.waitForSelector('#new-instrument:not([hidden])');
+    assert.strictEqual(await select.inputValue(), '');
+    await page.fill('#new-instrument-label', '鈴琴');
+    await page.selectOption('#new-instrument-family', 'percussion');
+    await page.press('#new-instrument-label', 'Enter');
+    await page.waitForSelector('#new-instrument', { state: 'hidden' });
+    assert.deepStrictEqual(log.addInstrument, [{ p_label: '鈴琴', p_family: 'percussion' }]);
+    assert.strictEqual(await select.inputValue(), 'inst6');
+    assert.strictEqual(await page.inputValue('.instrument-row [name="parts"]'), '1');
+    assert.match(await page.textContent('#notice'), /楽器「鈴琴」を登録して選びました/);
+    // ほかの行の選択肢にも出る。Enter で曲の登録はされていない
+    await page.click('#add-instrument');
+    assert.ok((await page.locator('.instrument-row select').nth(1).locator('option').allTextContents()).includes('鈴琴'));
+    assert.deepStrictEqual(log.addPiece, []);
+    // すでにある楽器名なら、その楽器を選ぶ
+    await page.locator('.instrument-row select').nth(1).selectOption('__new');
+    await page.fill('#new-instrument-label', '箏');
+    await page.click('#new-instrument-save');
+    await page.waitForSelector('#new-instrument', { state: 'hidden' });
+    assert.strictEqual(await page.locator('.instrument-row select').nth(1).inputValue(), 'koto');
+    assert.match(await page.textContent('#notice'), /すでに一覧にあった/);
+    assert.deepStrictEqual(s.errors, []);
+  });
+
   it('admin.html?edit=曲の id で、登録済みの曲を読み込んで修正できる', async () => {
     const s = await t.newPage();
     const { page, log } = s;

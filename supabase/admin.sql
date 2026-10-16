@@ -70,7 +70,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['categories', 'composers', 'pieces', 'piece_instruments'] loop
+  foreach t in array array['categories', 'instruments', 'composers', 'pieces', 'piece_instruments'] loop
     execute format('drop policy if exists "editors write" on %I', t);
     execute format('create policy "editors write" on %I for all to authenticated using (is_editor()) with check (is_editor())', t);
   end loop;
@@ -225,6 +225,41 @@ begin
 end;
 $$;
 
+-- 楽器のマスタ（instruments）に、一覧にない楽器を追加する（登録ページの「一覧にない楽器を追加」）
+-- 同じ名前の楽器がすでにあれば、追加せずにその楽器のキーを返す。
+-- 新しい楽器のキーは inst＋id（例：inst44）。検索ページの URL（inst=inst44:2）に使われる
+create or replace function add_instrument(p_label text, p_family text) returns text
+language plpgsql security invoker set search_path = public
+as $$
+declare
+  v_label text := nullif(btrim(p_label), '');
+  v_key   text;
+  v_id    bigint;
+begin
+  if not is_editor() then
+    raise exception '楽器を追加する権限がありません' using errcode = '42501';
+  end if;
+  if v_label is null then
+    raise exception '楽器名を入力してください' using errcode = '22023';
+  end if;
+  if p_family is null or p_family not in ('koto', 'shamisen', 'kan', 'percussion', 'voice', 'western', 'other') then
+    raise exception 'ジャンルを選んでください' using errcode = '22023';
+  end if;
+
+  v_key := (select key from instruments where label = v_label limit 1);
+  if v_key is not null then
+    return v_key;
+  end if;
+
+  insert into instruments (key, label, family, aliases, sort_order)
+  values ('new-' || gen_random_uuid(), v_label, p_family, '{}', coalesce((select max(sort_order) from instruments), 0) + 1)
+  returning id into v_id;
+  v_key := 'inst' || v_id;
+  update instruments set key = v_key where id = v_id;
+  return v_key;
+end;
+$$;
+
 -- ログインしていない人は、登録・修正の関数を使えない
 revoke execute on function check_piece(jsonb) from public, anon;
 revoke execute on function piece_category_id(text) from public, anon;
@@ -232,12 +267,14 @@ revoke execute on function piece_composer_id(text, text) from public, anon;
 revoke execute on function insert_piece_instruments(bigint, jsonb) from public, anon;
 revoke execute on function add_piece(jsonb) from public, anon;
 revoke execute on function update_piece(bigint, jsonb) from public, anon;
+revoke execute on function add_instrument(text, text) from public, anon;
 grant execute on function check_piece(jsonb) to authenticated;
 grant execute on function piece_category_id(text) to authenticated;
 grant execute on function piece_composer_id(text, text) to authenticated;
 grant execute on function insert_piece_instruments(bigint, jsonb) to authenticated;
 grant execute on function add_piece(jsonb) to authenticated;
 grant execute on function update_piece(bigint, jsonb) to authenticated;
+grant execute on function add_instrument(text, text) to authenticated;
 
 -- 登録担当者の追加：
 --   1. Authentication → Users → 「Add user」でメールアドレスとパスワードを登録（Auto Confirm User にチェック）
