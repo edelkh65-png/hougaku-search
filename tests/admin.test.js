@@ -31,6 +31,8 @@ describe('登録ページ', () => {
     await login(s);
     const options = await s.page.$$eval('#category option', (os) => os.map((o) => o.textContent));
     assert.deepStrictEqual(options, ['（なし）', '古典', '現代曲', '編曲']);
+    // 新しく登録するときは「現代曲」が選ばれている
+    assert.strictEqual(await s.page.inputValue('#category'), '現代曲');
     assert.deepStrictEqual(s.errors, []);
   });
 
@@ -44,6 +46,12 @@ describe('登録ページ', () => {
     await page.fill('#composer-input', '新しい作曲家');
     await page.click('#composer-list .combo-option.is-new');
     await page.locator('.instrument-row select').first().selectOption('koto');
+    // 楽器を選ぶと人数に1が入る。人数を入れてある行は、楽器を選び直しても変えない
+    assert.strictEqual(await page.inputValue('.instrument-row [name="parts"]'), '1');
+    await page.fill('.instrument-row [name="parts"]', '3');
+    await page.locator('.instrument-row select').first().selectOption('jushichigen');
+    assert.strictEqual(await page.inputValue('.instrument-row [name="parts"]'), '3');
+    await page.locator('.instrument-row select').first().selectOption('koto');
     await page.click('#save');
     assert.strictEqual(await page.textContent('#form-error'), '作曲者のよみがなを入力してください。');
     await page.fill('#composer-reading', 'アタラシイ');
@@ -53,6 +61,10 @@ describe('登録ページ', () => {
       { title: log.addPiece[0].title, category: log.addPiece[0].category, composer: log.addPiece[0].composer, reading: log.addPiece[0].composer_reading },
       { title: 'テスト登録曲', category: '古典', composer: '新しい作曲家', reading: 'あたらしい' },
     );
+    assert.deepStrictEqual(log.addPiece[0].instruments.map((i) => [i.key, i.parts]), [['koto', 3]]);
+    // 登録後はフォームが空になり、分類は「現代曲」に戻る
+    assert.strictEqual(await page.inputValue('#title'), '');
+    assert.strictEqual(await page.inputValue('#category'), '現代曲');
     // 最近登録した曲に出る
     await page.waitForFunction(() => document.querySelector('#recent li strong') && document.querySelector('#recent li strong').textContent.startsWith('テスト登録曲'));
   });

@@ -3,6 +3,8 @@
 
   const config = window.MUSIC_DB || {};
   const SESSION_KEY = 'music-admin-session';
+  // 新しく登録するときに最初から選んでおく分類（分類マスタにないときは「（なし）」）
+  const DEFAULT_CATEGORY = '現代曲';
   // Supabase の Authentication の設定（最低文字数・英字と数字）と合わせる
   const MIN_PASSWORD_LENGTH = 8;
 
@@ -277,10 +279,12 @@
   }
 
   // 分類はマスタ（categories）から選ぶ。非表示（hidden）の分類は選択肢に出さない
+  // 「現代曲」を初期値にする（入力をクリアしたときもこの値に戻る）
   function fillCategories(rows) {
     const current = els.category.value;
-    els.category.replaceChildren(new Option('（なし）', ''), ...rows.map((r) => new Option(r.name, r.name)));
-    els.category.value = current;
+    els.category.replaceChildren(new Option('（なし）', ''),
+      ...rows.map((r) => new Option(r.name, r.name, r.name === DEFAULT_CATEGORY, r.name === DEFAULT_CATEGORY)));
+    if (current) els.category.value = current;
   }
 
   // ---- 作曲者（よみ・名前で候補を出して選ぶ。部品は combo.js） ----
@@ -357,6 +361,12 @@
   els.addInstrument.addEventListener('click', () => addInstrumentRow().querySelector('select').focus());
   els.rows.addEventListener('click', (e) => {
     if (e.target.closest('.remove')) e.target.closest('.instrument-row').remove();
+  });
+  // 楽器を選んだとき、人数が空欄なら1を入れる（人数が分からない楽器は、空欄に戻せる）
+  els.rows.addEventListener('change', (e) => {
+    if (e.target.name !== 'key' || !e.target.value) return;
+    const parts = e.target.closest('.instrument-row').querySelector('[name="parts"]');
+    if (!parts.value) parts.value = '1';
   });
 
   // ---- 入力の読み取りと確認 ----
