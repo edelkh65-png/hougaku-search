@@ -345,7 +345,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     top.appendChild(el('span', 'meta', meta.join('・')));
     li.appendChild(top);
 
-    // 曲名と作曲者を1行に並べ、間を点線でつなぐ（曲名が短くてもカードの幅が埋まる）
+    // 曲名と作曲者を1行に並べ、作曲者は右端に寄せる
     // 曲名のリンクがカード全体を覆い、どこを押しても詳細ページへ移る（楽器名のボタンは除く）
     const headline = el('div', 'card-headline');
     const title = el('h2', 'card-title');
@@ -357,7 +357,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     if (piece.composer) people.push(piece.composer);
     if (piece.arranger) people.push(`編曲：${piece.arranger}`);
     if (people.length) {
-      headline.append(el('span', 'card-leader'), el('p', 'card-composer', people.join('　')));
+      headline.appendChild(el('p', 'card-composer', people.join('　')));
     }
     li.appendChild(headline);
 
