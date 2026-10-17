@@ -345,29 +345,21 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     top.appendChild(el('span', 'meta', meta.join('・')));
     li.appendChild(top);
 
-    // 曲名と作曲者を1行に並べ、作曲者は右端に寄せる
     // 曲名のリンクがカード全体を覆い、どこを押しても詳細ページへ移る（楽器名のボタンは除く）
-    const headline = el('div', 'card-headline');
     const title = el('h2', 'card-title');
     const link = el('a', 'card-link', piece.title);
     link.href = `piece.html?id=${piece.id}`;
     title.appendChild(link);
-    headline.appendChild(title);
+    li.appendChild(title);
+
+    // 作曲者は曲名の次の行に右揃えで
     const people = [];
     if (piece.composer) people.push(piece.composer);
     if (piece.arranger) people.push(`編曲：${piece.arranger}`);
-    if (people.length) {
-      headline.appendChild(el('p', 'card-composer', people.join('　')));
-    }
-    li.appendChild(headline);
+    if (people.length) li.appendChild(el('p', 'card-composer', people.join('　')));
 
-    // 副題とよみがなは、曲名の下に小さく1行で
-    if (piece.subtitle || piece.reading) {
-      const sub = el('p', 'card-sub');
-      if (piece.subtitle) sub.appendChild(el('span', 'card-subtitle', piece.subtitle));
-      if (piece.reading) sub.appendChild(el('span', 'card-reading', piece.reading));
-      li.appendChild(sub);
-    }
+    // 副題は小さく。よみがなは一覧では出さない（検索には使う）
+    if (piece.subtitle) li.appendChild(el('p', 'card-subtitle', piece.subtitle));
 
     if (piece.instruments.length) {
       const tags = el('ul', 'tags');

@@ -33,14 +33,16 @@ describe('検索ページ', () => {
     assert.strictEqual(await page.$eval('.badge', (b) => b.dataset.color), 'vermilion');
   });
 
-  it('カードは曲名と作曲者を1行に並べ（作曲者は右端）、作曲年・パート数は上の行に出す', async () => {
+  it('カードは曲名の次の行に作曲者を右揃えで出し、作曲年・パート数は上の行に、よみがなは出さない', async () => {
     const { page } = await open('?q=' + encodeURIComponent('春の海'));
     const card = await page.$eval('.card', (c) => ({
       meta: c.querySelector('.card-top .meta').textContent,
-      title: c.querySelector('.card-headline .card-title').textContent,
-      composer: c.querySelector('.card-headline .card-composer').textContent,
+      title: c.querySelector('.card-title').textContent,
+      composer: c.querySelector('.card-composer').textContent,
+      align: getComputedStyle(c.querySelector('.card-composer')).textAlign,
+      reading: c.textContent.includes('はるのうみ'),
     }));
-    assert.deepStrictEqual(card, { meta: '1929年・2パート', title: '春の海', composer: '宮城道雄' });
+    assert.deepStrictEqual(card, { meta: '1929年・2パート', title: '春の海', composer: '宮城道雄', align: 'right', reading: false });
   });
 
   it('キーワードは表記ゆれを吸収する（ヴァ／ば、絃／弦、カタカナ／ひらがな）', async () => {
