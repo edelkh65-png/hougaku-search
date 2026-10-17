@@ -352,14 +352,14 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     title.appendChild(link);
     li.appendChild(title);
 
-    // 作曲者は曲名の次の行に右揃えで
+    // 副題は小さく。よみがなは一覧では出さない（検索には使う）
+    if (piece.subtitle) li.appendChild(el('p', 'card-subtitle', piece.subtitle));
+
+    // 作曲者は曲名（副題）の次の行に右揃えで
     const people = [];
     if (piece.composer) people.push(piece.composer);
     if (piece.arranger) people.push(`編曲：${piece.arranger}`);
     if (people.length) li.appendChild(el('p', 'card-composer', people.join('　')));
-
-    // 副題は小さく。よみがなは一覧では出さない（検索には使う）
-    if (piece.subtitle) li.appendChild(el('p', 'card-subtitle', piece.subtitle));
 
     if (piece.instruments.length) {
       const tags = el('ul', 'tags');
