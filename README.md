@@ -17,6 +17,7 @@ HTML・CSS・JavaScript だけで作り、データは Supabase で管理して�
 | `admin.html`・`admin.js` | 曲の登録ページ（登録担当者のみ） |
 | `db.js` | Supabase からの読み込み |
 | `combo.js` | 作曲者の入力欄（検索ページと登録ページで共通） |
+| `ministage.js` | 編成の小さな舞台図（舞台で探すで使用） |
 | `constants.js` | 楽器のジャンル・表示件数などの設定 |
 | `config.js` | Supabase の接続先 |
 | `style.css` | 見た目 |

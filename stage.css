@@ -1,48 +1,5 @@
-/* 舞台で探す（stage.html）。色の土台は style.css の変数を使う */
+/* 舞台で探す（stage.html）。色の土台（楽器のジャンルの色も）は style.css の変数を使う */
 
-/* 楽器の系統ごとの色（舞台の奏者・パレット・結果の小さな舞台図） */
-:root {
-  --fam-koto: #2a2723;        /* 墨 */
-  --fam-shamisen: #8a7f6f;    /* 利休鼠 */
-  --fam-kan: #b23a2a;         /* 朱 */
-  --fam-percussion: #b9a98a;  /* 砂色 */
-  --fam-voice: #2b4c6f;       /* 藍 */
-  --fam-western: #3a6b4a;     /* 千歳緑 */
-  --fam-other: #9a9288;
-  --seat-text: #fbf8f1;
-  --stage-floor: #2a2723;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --fam-koto: #e6cf98;      /* 金 */
-    --fam-shamisen: #d8ccb4;
-    --fam-kan: #e0735c;
-    --fam-percussion: #9c8a74;
-    --fam-voice: #8fb0d4;
-    --fam-western: #8fc0a0;
-    --fam-other: #8f877c;
-    --seat-text: #1b1a17;
-    --stage-floor: #c9a45c;
-  }
-}
-:root[data-theme="dark"] {
-  --fam-koto: #e6cf98;
-  --fam-shamisen: #d8ccb4;
-  --fam-kan: #e0735c;
-  --fam-percussion: #9c8a74;
-  --fam-voice: #8fb0d4;
-  --fam-western: #8fc0a0;
-  --fam-other: #8f877c;
-  --seat-text: #1b1a17;
-  --stage-floor: #c9a45c;
-}
-.fam-koto { --fam: var(--fam-koto); }
-.fam-shamisen { --fam: var(--fam-shamisen); }
-.fam-kan { --fam: var(--fam-kan); }
-.fam-percussion { --fam: var(--fam-percussion); }
-.fam-voice { --fam: var(--fam-voice); }
-.fam-western { --fam: var(--fam-western); }
-.fam-other { --fam: var(--fam-other); }
 
 .stage-page {
   max-width: 1200px;
@@ -197,6 +154,3 @@
 @media (max-width: 600px) {
   .stage-item .reading { display: none; }
 }
-.mini circle { fill: var(--fam); stroke: var(--fam); }
-.mini circle.is-unknown { fill: none; }
-.mini line { stroke: var(--line); }

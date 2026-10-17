@@ -350,10 +350,12 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     const link = el('a', 'card-link', piece.title);
     link.href = `piece.html?id=${piece.id}`;
     title.appendChild(link);
-    if (piece.subtitle) title.appendChild(el('span', 'card-subtitle', piece.subtitle));
     li.appendChild(title);
-    if (piece.reading) li.appendChild(el('p', 'card-reading', piece.reading));
 
+    // 副題は小さく。よみがなは一覧では出さない（検索には使う）
+    if (piece.subtitle) li.appendChild(el('p', 'card-subtitle', piece.subtitle));
+
+    // 作曲者は曲名（副題）の次の行に右揃えで
     const people = [];
     if (piece.composer) people.push(piece.composer);
     if (piece.arranger) people.push(`編曲：${piece.arranger}`);
