@@ -41,6 +41,18 @@ describe('曲の詳細ページ', () => {
     assert.deepStrictEqual(await rows(page), ['十七絃 2パート', '歌 1パート 省略可']);
   });
 
+  it('楽章は楽器編成の下に表示する（番号の表記が空なら「第◯楽章」）', async () => {
+    const { page } = await open(5);
+    const headings = await page.$$eval('.detail-section h2', (hs) => hs.map((h) => h.firstChild.textContent));
+    assert.ok(headings.indexOf('楽器編成') + 1 === headings.indexOf('楽章'));
+    assert.strictEqual(await page.textContent('.movement-count'), '全2楽章');
+    assert.deepStrictEqual(await page.$$eval('.movement-list li', (lis) => lis.map((li) => li.innerText.replace(/\s+/g, ' ').trim())),
+      ['第1楽章 朝 あさ', '終章 夜明け よあけ 声は省略可']);
+    // 楽章のない曲には楽章の欄を出さない
+    const other = await open(1);
+    assert.strictEqual(await other.page.$('.movement-list'), null);
+  });
+
   it('YouTube へのリンクは「曲名　作曲者名」で検索する', async () => {
     const { page } = await open(1);
     const href = await page.getAttribute('.youtube-link', 'href');

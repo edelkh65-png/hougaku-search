@@ -58,10 +58,22 @@ create table piece_instruments (
   position      int not null default 0     -- 表示順
 );
 
+-- 楽曲ごとの楽章
+create table piece_movements (
+  id       bigint generated always as identity primary key,
+  piece_id bigint not null references pieces (id) on delete cascade,
+  label    text not null default '',      -- 番号の表記（例：I、序、第一章）。空欄なら「第◯楽章」
+  title    text not null default '',      -- 楽章名
+  reading  text not null default '',      -- 楽章名のよみがな
+  remarks  text not null default '',      -- 楽章ごとの備考
+  position int not null default 0         -- 表示順
+);
+
 create index on pieces (composer_id);
 create index on pieces (category_id);
 create index on piece_instruments (piece_id);
 create index on piece_instruments (instrument_id);
+create index on piece_movements (piece_id);
 
 -- 閲覧は誰でも可能、書き込みは管理画面（ログインした管理者）からのみ
 alter table categories        enable row level security;
@@ -69,6 +81,7 @@ alter table composers         enable row level security;
 alter table instruments       enable row level security;
 alter table pieces            enable row level security;
 alter table piece_instruments enable row level security;
+alter table piece_movements   enable row level security;
 
 create policy "public read" on categories        for select to anon, authenticated using (true);
 create policy "public read" on composers         for select to anon, authenticated using (true);
@@ -77,3 +90,4 @@ create policy "public read" on instruments       for select to anon, authenticat
 create policy "public read" on pieces            for select to anon, authenticated
   using (category_id is null or category_id not in (select id from categories where hidden));
 create policy "public read" on piece_instruments for select to anon, authenticated using (true);
+create policy "public read" on piece_movements   for select to anon, authenticated using (true);

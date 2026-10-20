@@ -140,6 +140,48 @@ describe('登録ページ', () => {
     assert.deepStrictEqual(s.errors, []);
   });
 
+  it('楽章を読み込み、並べ替え・削除・追加して保存できる', async () => {
+    const s = await t.newPage();
+    const { page, log } = s;
+    await page.goto(`${t.base}admin.html?edit=5`);
+    await page.fill('#email', EDITOR.email);
+    await page.fill('#password', EDITOR.password);
+    await page.click('#login-form button[type="submit"]');
+    await page.waitForSelector('#edit-banner:not([hidden])');
+    const movements = () => page.$$eval('.movement-row', (rows) => rows.map((r) =>
+      ['label', 'title', 'reading', 'remarks'].map((n) => r.querySelector(`[name="mv-${n}"]`).value).join('|')));
+    assert.deepStrictEqual(await movements(), ['|朝|あさ|', '終章|夜明け|よあけ|声は省略可']);
+    // 番号の表記の見本は並び順。先頭の「↑」と最後の「↓」は押せない
+    assert.deepStrictEqual(await page.$$eval('.movement-row [name="mv-label"]', (is) => is.map((i) => i.placeholder)), ['第1楽章', '第2楽章']);
+    assert.ok(await page.locator('.movement-row .move-up').first().isDisabled());
+    assert.ok(await page.locator('.movement-row .move-down').last().isDisabled());
+
+    // 2つ目を上へ → 楽章を追加 → 「朝」を削除
+    await page.locator('.movement-row .move-up').nth(1).click();
+    assert.deepStrictEqual(await movements(), ['終章|夜明け|よあけ|声は省略可', '|朝|あさ|']);
+    await page.click('#add-movement');
+    await page.locator('.movement-row [name="mv-title"]').nth(2).fill('昼');
+    await page.locator('.movement-row .remove').nth(1).click();
+    // よみがなだけの楽章は保存できない
+    await page.locator('.movement-row [name="mv-title"]').nth(1).fill('');
+    await page.locator('.movement-row [name="mv-reading"]').nth(1).fill('ひる');
+    await page.click('#save');
+    await page.waitForSelector('#form-error:not([hidden])');
+    assert.match(await page.textContent('#form-error'), /楽章名を入力してください/);
+    await page.locator('.movement-row [name="mv-title"]').nth(1).fill('昼');
+    // すべて空欄の行は無視される
+    await page.click('#add-movement');
+    await page.click('#save');
+    await page.waitForURL(/piece\.html/);
+    await page.waitForSelector('.movement-list');
+    assert.deepStrictEqual(log.updatePiece[0].piece.movements, [
+      { label: '終章', title: '夜明け', reading: 'よあけ', remarks: '声は省略可' },
+      { label: '', title: '昼', reading: 'ひる', remarks: '' },
+    ]);
+    assert.deepStrictEqual(await page.$$eval('.movement-no', (ns) => ns.map((n) => n.textContent)), ['終章', '第2楽章']);
+    assert.deepStrictEqual(s.errors, []);
+  });
+
   it('ログインしていなければ、詳細ページに修正の入り口は出ない。最近の曲には「修正」がある', async () => {
     const { page } = await t.newPage();
     await page.goto(`${t.base}piece.html?id=1`);

@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=20261017-3">
+<link rel="stylesheet" href="style.css?v=20261020-1">
 </head>
 <body>
 
@@ -183,6 +183,13 @@
         <button type="button" id="add-instrument" class="secondary">楽器を追加</button>
       </fieldset>
 
+      <fieldset class="field">
+        <legend>楽章</legend>
+        <p class="hint">楽章のない曲は空のままにしてください。番号の表記を空欄にすると「第1楽章」のように自動で付きます。「I」「序」「第一章」なども入力できます。</p>
+        <div id="movement-rows" class="movement-rows"></div>
+        <button type="button" id="add-movement" class="secondary">楽章を追加</button>
+      </fieldset>
+
       <div class="field">
         <label for="remarks">備考</label>
         <textarea id="remarks" name="remarks" rows="2"></textarea>
@@ -219,9 +226,21 @@
   </div>
 </template>
 
-<script src="config.js?v=20261017-3"></script>
-<script src="constants.js?v=20261017-3"></script>
-<script src="combo.js?v=20261017-3"></script>
-<script src="admin.js?v=20261017-3"></script>
+<template id="movement-row">
+  <div class="movement-row">
+    <label class="mr-label"><span>番号の表記</span><input type="text" name="mv-label"></label>
+    <label class="mr-title"><span>楽章名</span><input type="text" name="mv-title"></label>
+    <label class="mr-reading"><span>楽章名のよみがな</span><input type="text" name="mv-reading"></label>
+    <button type="button" class="move move-up" aria-label="この楽章を上へ">↑</button>
+    <button type="button" class="move move-down" aria-label="この楽章を下へ">↓</button>
+    <button type="button" class="remove" aria-label="この楽章を削除">×</button>
+    <label class="mr-remarks"><span>備考</span><input type="text" name="mv-remarks" placeholder="楽章ごとの備考（任意）"></label>
+  </div>
+</template>
+
+<script src="config.js?v=20261020-1"></script>
+<script src="constants.js?v=20261020-1"></script>
+<script src="combo.js?v=20261020-1"></script>
+<script src="admin.js?v=20261020-1"></script>
 </body>
 </html>

@@ -45,6 +45,16 @@ describe('検索ページ', () => {
     assert.deepStrictEqual(card, { meta: '1929年・2パート', title: '春の海', composer: '宮城道雄', align: 'right', reading: false });
   });
 
+  it('楽章のある曲は、カードに楽章数を出し、楽章名（よみがな）でも見つかる', async () => {
+    const { page } = await open('?q=' + encodeURIComponent('よあけ'));
+    assert.deepStrictEqual(await titles(page), ['ヴァイオレット']);
+    assert.strictEqual(await page.textContent('.card .meta'), '2020-22年・3パート・全2楽章');
+    // 楽章名そのものでも見つかる。カードに楽章名は出さない
+    await page.fill('#q', '夜明け');
+    await page.waitForFunction(() => document.getElementById('count').textContent.startsWith('1件'));
+    assert.ok(!(await page.textContent('.card')).includes('夜明け'));
+  });
+
   it('キーワードは表記ゆれを吸収する（ヴァ／ば、絃／弦、カタカナ／ひらがな）', async () => {
     const { page } = await open();
     await page.fill('#q', 'ばいおれっと');

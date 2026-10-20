@@ -39,8 +39,10 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     });
     const instrumentWords = instruments.flatMap((i) =>
       [INSTRUMENTS[i.key].label, ...INSTRUMENTS[i.key].aliases, i.notation]);
+    // 楽章名とそのよみがなでも見つかるようにする
+    const movementWords = (p.movements || []).flatMap((m) => [m.title, m.reading]);
     piece.haystack = normalize([p.title, p.reading, p.subtitle, p.category, p.composer, p.composerReading, p.arranger,
-      p.yearLabel, p.remarks, ...instrumentWords].join(' '));
+      p.yearLabel, p.remarks, ...instrumentWords, ...movementWords].join(' '));
     return piece;
   });
 
@@ -342,6 +344,7 @@ function startMusicSearch(INSTRUMENTS, PIECES) {
     const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
     if (year) meta.push(`${year}年`);
     if (piece.players) meta.push(`${piece.players}パート`);
+    if (piece.movements && piece.movements.length) meta.push(`全${piece.movements.length}楽章`);
     top.appendChild(el('span', 'meta', meta.join('・')));
     li.appendChild(top);
 
