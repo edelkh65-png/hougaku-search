@@ -52,6 +52,9 @@ function toPieceRow(db, p) {
       parts: i.parts === undefined ? null : i.parts, is_solo: !!i.is_solo, is_optional: !!i.is_optional,
       notation: i.notation || '', position, instrument: { key: i.key },
     })),
+    piece_movements: (p.movements || []).map((m, position) => ({
+      label: m.label || '', title: m.title || '', reading: m.reading || '', remarks: m.remarks || '', position,
+    })),
   };
 }
 
@@ -107,7 +110,7 @@ function mockSupabase(db, options = {}) {
       log.addPiece.push(body.piece);
       const id = Math.max(...db.pieces.map((r) => r.id)) + 1;
       const category = db.categories.find((c) => c.name === body.piece.category);
-      db.pieces.push(toPieceRow(db, { id, title: body.piece.title, reading: body.piece.reading, category_id: category && category.id, instruments: body.piece.instruments }));
+      db.pieces.push(toPieceRow(db, { id, title: body.piece.title, reading: body.piece.reading, category_id: category && category.id, instruments: body.piece.instruments, movements: body.piece.movements }));
       return json(route, id);
     }
     if (table === 'rpc/update_piece') {
@@ -126,6 +129,7 @@ function mockSupabase(db, options = {}) {
         year: pc.year, year_label: pc.year_label, remarks: pc.remarks,
         category_id: category && category.id, composer_id: composer && composer.id,
         instruments: pc.instruments.map((i) => ({ key: i.key, parts: i.parts, is_solo: i.solo, is_optional: i.optional, notation: i.notation })),
+        movements: pc.movements,
       });
       return json(route, body.target_id);
     }

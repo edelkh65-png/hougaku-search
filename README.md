@@ -1,6 +1,6 @@
 # 邦楽 楽曲検索
 
-箏・尺八・三絃などの邦楽曲を、曲名・よみがな・作曲者・楽器編成から検索できる Web アプリです。
+箏・尺八・三絃などの邦楽曲を、曲名・よみがな・作曲者・楽器編成・楽章名から検索できる Web アプリです。
 HTML・CSS・JavaScript だけで作り、データは Supabase で管理しています。
 
 - 公開ページ：https://edelkh65-png.github.io/hougaku-search/

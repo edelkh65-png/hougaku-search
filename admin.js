@@ -29,6 +29,9 @@
     form: $('piece-form'),
     rows: $('instrument-rows'),
     addInstrument: $('add-instrument'),
+    movementRows: $('movement-rows'),
+    addMovement: $('add-movement'),
+    movementTemplate: $('movement-row'),
     formError: $('form-error'),
     duplicate: $('duplicate-warning'),
     save: $('save'),
@@ -222,7 +225,8 @@
   // ---- 登録済みの曲の修正 ----
   const PIECE_FOR_EDIT = 'id,title,reading,subtitle,arranger,year,year_label,remarks,'
     + 'category:categories(name,hidden),composer:composers(name,reading),'
-    + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key))';
+    + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key)),'
+    + 'piece_movements(label,title,reading,remarks,position)';
 
   async function startEdit(id) {
     const rows = await api(`pieces?select=${PIECE_FOR_EDIT}&id=eq.${id}`);
@@ -279,6 +283,13 @@
       r.querySelector('[name="notation"]').value = pi.notation || '';
     });
     if (!els.rows.children.length) addInstrumentRow();
+
+    els.movementRows.replaceChildren();
+    (row.piece_movements || []).slice().sort((a, b) => a.position - b.position).forEach((m) => {
+      const r = addMovementRow();
+      ['label', 'title', 'reading', 'remarks'].forEach((name) => { r.querySelector(`[name="mv-${name}"]`).value = m[name] || ''; });
+    });
+    numberMovements();
     confirmedDuplicate = false;
     els.duplicate.hidden = true;
     showError(els.formError, '');
@@ -447,6 +458,33 @@
     saveNewInstrument();
   });
 
+  // ---- 楽章 ----
+  function addMovementRow() {
+    const row = els.movementTemplate.content.firstElementChild.cloneNode(true);
+    els.movementRows.appendChild(row);
+    numberMovements();
+    return row;
+  }
+  // 番号の表記の見本（第◯楽章）と、並べ替えボタンの使える・使えないを、並び順に合わせる
+  function numberMovements() {
+    const rows = [...els.movementRows.children];
+    rows.forEach((row, i) => {
+      row.querySelector('[name="mv-label"]').placeholder = `第${i + 1}楽章`;
+      row.querySelector('.move-up').disabled = i === 0;
+      row.querySelector('.move-down').disabled = i === rows.length - 1;
+    });
+  }
+  els.addMovement.addEventListener('click', () => addMovementRow().querySelector('[name="mv-title"]').focus());
+  els.movementRows.addEventListener('click', (e) => {
+    const row = e.target.closest('.movement-row');
+    if (!row) return;
+    if (e.target.closest('.remove')) row.remove();
+    else if (e.target.closest('.move-up') && row.previousElementSibling) row.previousElementSibling.before(row);
+    else if (e.target.closest('.move-down') && row.nextElementSibling) row.nextElementSibling.after(row);
+    else return;
+    numberMovements();
+  });
+
   // ---- 入力の読み取りと確認 ----
   function readForm() {
     const f = els.form.elements;
@@ -462,6 +500,7 @@
       year: null,
       year_label: '',
       instruments: [],
+      movements: [],
     };
 
     if (!piece.title) return { error: '曲名を入力してください。', focus: f.title };
@@ -509,6 +548,20 @@
         optional: row.querySelector('[name="optional"]').checked,
         notation,
       });
+    }
+
+    // 楽章：すべて空欄の行は無視する。楽章名かその番号の表記のどちらかは必要
+    for (const row of els.movementRows.querySelectorAll('.movement-row')) {
+      const field = (name) => row.querySelector(`[name="mv-${name}"]`).value.trim();
+      const movement = { label: field('label'), title: field('title'), reading: field('reading'), remarks: field('remarks') };
+      if (!movement.label && !movement.title && !movement.reading && !movement.remarks) continue;
+      if (!movement.label && !movement.title) {
+        return { error: '楽章名を入力してください（名前のない楽章は番号の表記だけでも構いません）。', focus: row.querySelector('[name="mv-title"]') };
+      }
+      if (!movement.title && movement.reading) {
+        return { error: '楽章名のよみがなだけが入力されています。楽章名を入力してください。', focus: row.querySelector('[name="mv-title"]') };
+      }
+      piece.movements.push(movement);
     }
     return { piece };
   }
@@ -582,6 +635,7 @@
     els.newInstrument.hidden = true;
     els.rows.replaceChildren();
     addInstrumentRow();
+    els.movementRows.replaceChildren();
     els.composer.value = '';
     composerPicker.setValue('');
     syncComposerReading();

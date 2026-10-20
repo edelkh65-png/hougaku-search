@@ -4,11 +4,13 @@
 //   piece.composerReading は作曲者名の読み
 //   piece.category は分類名、piece.categoryColor は印の色（categories.color）
 //   piece.instruments: [{ key, parts, notation, solo, optional }]
+//   piece.movements: [{ label, title, reading, remarks }]（楽章。label が空なら「第◯楽章」と表示）
 //   非表示（hidden）の分類の曲は含まない（Supabase では読み取り権限の設定で除外される）
 const PIECE_SELECT = 'id,title,reading,subtitle,arranger,year,year_label,remarks,'
   + 'category:categories(name,color),'
   + 'composer:composers(name,reading),'
-  + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key))';
+  + 'piece_instruments(parts,is_solo,is_optional,notation,position,instrument:instruments(key)),'
+  + 'piece_movements(label,title,reading,remarks,position)';
 
 function musicDbConfig() {
   const config = window.MUSIC_DB || {};
@@ -61,6 +63,10 @@ function pieceFromDbRow(row) {
         solo: pi.is_solo,
         optional: pi.is_optional,
       })),
+    movements: (row.piece_movements || [])
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((m) => ({ label: m.label || '', title: m.title || '', reading: m.reading || '', remarks: m.remarks || '' })),
   };
 }
 

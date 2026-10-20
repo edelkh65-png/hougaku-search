@@ -171,6 +171,28 @@
     }
     article.appendChild(section);
 
+    // 楽章（楽器編成の下）。番号の表記が空なら「第◯楽章」
+    const movements = piece.movements || [];
+    if (movements.length) {
+      const mv = el('section', 'detail-section');
+      const heading = el('h2', '', '楽章');
+      heading.appendChild(el('span', 'movement-count', `全${movements.length}楽章`));
+      mv.appendChild(heading);
+      const list = el('ol', 'movement-list');
+      movements.forEach((m, i) => {
+        const item = el('li');
+        item.appendChild(el('span', 'movement-no', m.label || `第${i + 1}楽章`));
+        const name = el('div', 'movement-name');
+        if (m.title) name.appendChild(el('span', 'movement-title', m.title));
+        if (m.reading) name.appendChild(el('span', 'movement-reading', m.reading));
+        item.appendChild(name);
+        if (m.remarks) item.appendChild(el('p', 'movement-remarks', m.remarks));
+        list.appendChild(item);
+      });
+      mv.appendChild(list);
+      article.appendChild(mv);
+    }
+
     if (piece.remarks) {
       const remarks = el('section', 'detail-section');
       remarks.appendChild(el('h2', '', '備考'));

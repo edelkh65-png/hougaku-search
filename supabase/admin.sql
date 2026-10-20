@@ -51,6 +51,21 @@ drop policy if exists "public read" on pieces;
 create policy "public read" on pieces for select to anon, authenticated
   using (category_id is null or category_id not in (select id from categories where hidden));
 
+-- ---- 楽章（piece_movements） ----
+create table if not exists piece_movements (
+  id       bigint generated always as identity primary key,
+  piece_id bigint not null references pieces (id) on delete cascade,
+  label    text not null default '',      -- 番号の表記（例：I、序、第一章）。空欄なら「第◯楽章」
+  title    text not null default '',      -- 楽章名
+  reading  text not null default '',      -- 楽章名のよみがな
+  remarks  text not null default '',      -- 楽章ごとの備考
+  position int not null default 0         -- 表示順
+);
+create index if not exists piece_movements_piece_id_idx on piece_movements (piece_id);
+alter table piece_movements enable row level security;
+drop policy if exists "public read" on piece_movements;
+create policy "public read" on piece_movements for select to anon, authenticated using (true);
+
 create table if not exists editors (
   user_id    uuid primary key references auth.users (id) on delete cascade,
   created_at timestamptz not null default now()
@@ -70,7 +85,7 @@ $$;
 do $$
 declare t text;
 begin
-  foreach t in array array['categories', 'instruments', 'composers', 'pieces', 'piece_instruments'] loop
+  foreach t in array array['categories', 'instruments', 'composers', 'pieces', 'piece_instruments', 'piece_movements'] loop
     execute format('drop policy if exists "editors write" on %I', t);
     execute format('create policy "editors write" on %I for all to authenticated using (is_editor()) with check (is_editor())', t);
   end loop;
@@ -79,7 +94,8 @@ end $$;
 -- ---- 曲の登録・修正 ----
 -- piece の例：
 --   {"title": "春の海", "reading": "はるのうみ", "category": "現代曲", "composer": "宮城道雄", "composer_reading": "みやぎみちお", "year": 1929,
---    "instruments": [{"key": "koto", "parts": 1}, {"key": "shakuhachi", "parts": 1}]}
+--    "instruments": [{"key": "koto", "parts": 1}, {"key": "shakuhachi", "parts": 1}],
+--    "movements": [{"label": "", "title": "春の日", "reading": "はるのひ", "remarks": ""}]}
 -- ※ 変数への代入は「変数 := (select …)」の形で書く。
 --    SELECT 文で直接変数に入れる書き方は、Supabase の SQL Editor が表の作成と誤認し、実行できなくなるため
 
@@ -159,7 +175,19 @@ as $$
   join instruments i on i.key = t.e->>'key';
 $$;
 
--- 1曲分（曲の情報と楽器編成）をまとめて登録する。途中で失敗した場合は何も登録されない
+-- 曲の楽章を、piece の movements の順に追加する（すべて空欄の楽章は追加しない）
+create or replace function insert_piece_movements(p_piece_id bigint, piece jsonb) returns void
+language sql security invoker set search_path = public
+as $$
+  insert into piece_movements (piece_id, label, title, reading, remarks, position)
+  select p_piece_id, coalesce(btrim(t.e->>'label'), ''), coalesce(btrim(t.e->>'title'), ''),
+         coalesce(btrim(t.e->>'reading'), ''), coalesce(btrim(t.e->>'remarks'), ''),
+         (row_number() over (order by t.ord) - 1)::int
+  from jsonb_array_elements(coalesce(piece->'movements', '[]')) with ordinality as t (e, ord)
+  where concat(btrim(t.e->>'label'), btrim(t.e->>'title'), btrim(t.e->>'reading'), btrim(t.e->>'remarks')) <> '';
+$$;
+
+-- 1曲分（曲の情報・楽器編成・楽章）をまとめて登録する。途中で失敗した場合は何も登録されない
 create or replace function add_piece(piece jsonb) returns bigint
 language plpgsql security invoker set search_path = public
 as $$
@@ -187,12 +215,13 @@ begin
   returning id into v_piece_id;
 
   perform insert_piece_instruments(v_piece_id, piece);
+  perform insert_piece_movements(v_piece_id, piece);
   return v_piece_id;
 end;
 $$;
 
--- 登録済みの1曲（target_id）の情報と楽器編成をまとめて修正する。途中で失敗した場合は何も変わらない
--- 楽器編成は、いったん消してから piece の内容で入れ直す
+-- 登録済みの1曲（target_id）の情報・楽器編成・楽章をまとめて修正する。途中で失敗した場合は何も変わらない
+-- 楽器編成と楽章は、いったん消してから piece の内容で入れ直す
 create or replace function update_piece(target_id bigint, piece jsonb) returns bigint
 language plpgsql security invoker set search_path = public
 as $$
@@ -221,6 +250,8 @@ begin
 
   delete from piece_instruments where piece_instruments.piece_id = target_id;
   perform insert_piece_instruments(target_id, piece);
+  delete from piece_movements where piece_movements.piece_id = target_id;
+  perform insert_piece_movements(target_id, piece);
   return target_id;
 end;
 $$;
@@ -265,6 +296,7 @@ revoke execute on function check_piece(jsonb) from public, anon;
 revoke execute on function piece_category_id(text) from public, anon;
 revoke execute on function piece_composer_id(text, text) from public, anon;
 revoke execute on function insert_piece_instruments(bigint, jsonb) from public, anon;
+revoke execute on function insert_piece_movements(bigint, jsonb) from public, anon;
 revoke execute on function add_piece(jsonb) from public, anon;
 revoke execute on function update_piece(bigint, jsonb) from public, anon;
 revoke execute on function add_instrument(text, text) from public, anon;
@@ -272,6 +304,7 @@ grant execute on function check_piece(jsonb) to authenticated;
 grant execute on function piece_category_id(text) to authenticated;
 grant execute on function piece_composer_id(text, text) to authenticated;
 grant execute on function insert_piece_instruments(bigint, jsonb) to authenticated;
+grant execute on function insert_piece_movements(bigint, jsonb) to authenticated;
 grant execute on function add_piece(jsonb) to authenticated;
 grant execute on function update_piece(bigint, jsonb) to authenticated;
 grant execute on function add_instrument(text, text) to authenticated;

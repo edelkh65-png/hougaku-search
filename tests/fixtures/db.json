@@ -28,7 +28,8 @@
     { "id": 4, "title": "赤とんぼ", "reading": "あかとんぼ", "subtitle": "", "category_id": 3, "composer_id": null, "arranger": "テスト編曲者", "year": null, "year_label": "", "remarks": "",
       "instruments": [{ "key": "koto", "parts": 1 }] },
     { "id": 5, "title": "ヴァイオレット", "reading": "ゔぁいおれっと", "subtitle": "十七絃の為の", "category_id": 2, "composer_id": 2, "arranger": "", "year": 2020, "year_label": "2020-22", "remarks": "",
-      "instruments": [{ "key": "jushichigen", "parts": 2 }, { "key": "voice", "parts": 1, "is_optional": true }] },
+      "instruments": [{ "key": "jushichigen", "parts": 2 }, { "key": "voice", "parts": 1, "is_optional": true }],
+      "movements": [{ "title": "朝", "reading": "あさ" }, { "label": "終章", "title": "夜明け", "reading": "よあけ", "remarks": "声は省略可" }] },
     { "id": 6, "title": "隠し曲", "reading": "かくしきょく", "subtitle": "", "category_id": 4, "composer_id": 1, "arranger": "", "year": 2000, "year_label": "", "remarks": "",
       "instruments": [{ "key": "koto", "parts": 2 }] }
   ]
