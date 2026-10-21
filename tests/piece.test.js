@@ -53,6 +53,15 @@ describe('曲の詳細ページ', () => {
     assert.strictEqual(await other.page.$('.movement-list'), null);
   });
 
+  it('検索エンジン向けに、曲名（作曲者）のタイトルと曲ごとの説明文を付ける', async () => {
+    const { page } = await open(1);
+    assert.strictEqual(await page.title(), '春の海（宮城道雄）｜邦楽 楽曲検索');
+    assert.strictEqual(await page.getAttribute('meta[name="description"]', 'content'), '春の海　宮城道雄作曲（1929年）。編成：箏・尺八（2パート）。');
+    const other = await open(5);
+    assert.strictEqual(await other.page.getAttribute('meta[name="description"]', 'content'),
+      'ヴァイオレット 十七絃の為の　沢井忠夫作曲（2020-22年）。編成：十七絃・歌（3パート）。全2楽章。');
+  });
+
   it('YouTube へのリンクは「曲名　作曲者名」で検索する', async () => {
     const { page } = await open(1);
     const href = await page.getAttribute('.youtube-link', 'href');

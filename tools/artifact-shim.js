@@ -13,7 +13,7 @@
     detailView.hidden = true;
     detailView.replaceChildren();
     listView.hidden = false;
-    document.title = '楽曲検索';
+    document.title = '邦楽 楽曲検索｜邦楽器を含む曲を探す';
     window.scrollTo(0, y === undefined ? savedY : y);
   }
 

@@ -89,8 +89,26 @@
     ];
   }
 
+  // 例：春の海　宮城道雄作曲（1929年）。編成：箏・尺八（2パート）。
+  function describe(INSTRUMENTS, piece) {
+    const year = piece.yearLabel || (piece.year ? String(piece.year) : '');
+    const who = [piece.composer && `${piece.composer}作曲`, piece.arranger && `${piece.arranger}編曲`].filter(Boolean).join('・');
+    let text = `${piece.title}${piece.subtitle ? ` ${piece.subtitle}` : ''}${who ? `　${who}` : ''}${year ? `（${year}年）` : ''}。`;
+    if (piece.instruments.length) {
+      const labels = piece.instruments.map((i) => (INSTRUMENTS[i.key] || { label: i.key }).label);
+      const known = piece.instruments.every((i) => i.parts);
+      const players = known ? piece.instruments.reduce((sum, i) => sum + i.parts, 0) : 0;
+      text += `編成：${[...new Set(labels)].join('・')}${players ? `（${players}パート）` : ''}。`;
+    }
+    if (piece.movements && piece.movements.length) text += `全${piece.movements.length}楽章。`;
+    return text;
+  }
+
   function render(INSTRUMENTS, piece) {
-    document.title = `${piece.title} | 楽曲検索`;
+    // 検索結果に出る名前と説明文
+    document.title = `${piece.title}${piece.composer ? `（${piece.composer}）` : ''}｜邦楽 楽曲検索`;
+    const description = document.querySelector('meta[name="description"]');
+    if (description) description.content = describe(INSTRUMENTS, piece);
     status.hidden = true;
 
     const article = el('article', 'panel detail-body');
