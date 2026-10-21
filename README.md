@@ -22,7 +22,8 @@ HTML・CSS・JavaScript だけで作り、データは Supabase で管理して�
 | `config.js` | Supabase の接続先 |
 | `style.css` | 見た目 |
 | `supabase/` | データベースの設定と運用手順（[supabase/README.md](supabase/README.md)） |
-| `tools/` | claude.ai 版を作るスクリプト |
+| `sitemap.xml` | 検索エンジン向けのページ一覧（`tools/build-sitemap.js` で作る） |
+| `tools/` | claude.ai 版・サイトマップを作るスクリプト |
 | `tests/` | 動作確認のテスト |
 
-運用の手順（登録担当者の追加・分類の管理・バックアップ・claude.ai 版の更新・テストの実行など）は [supabase/README.md](supabase/README.md) にまとめています。
+運用の手順（登録担当者の追加・分類の管理・バックアップ・claude.ai 版やサイトマップの更新・テストの実行など）は [supabase/README.md](supabase/README.md) にまとめています。
