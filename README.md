@@ -22,7 +22,7 @@ HTML・CSS・JavaScript だけで作り、データは Supabase で管理して�
 | `config.js` | Supabase の接続先 |
 | `style.css` | 見た目 |
 | `supabase/` | データベースの設定と運用手順（[supabase/README.md](supabase/README.md)） |
-| `sitemap.xml` | 検索エンジン向けのページ一覧（`tools/build-sitemap.js` で作る） |
+| `sitemap.xml`・`sitemap.txt` | 検索エンジン向けのページ一覧（XML 形式とテキスト形式。`tools/build-sitemap.js` で作る） |
 | `tools/` | claude.ai 版・サイトマップを作るスクリプト |
 | `tests/` | 動作確認のテスト |
 

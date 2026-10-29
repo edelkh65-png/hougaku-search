@@ -17,5 +17,7 @@ describe('サイトマップ', () => {
     const urls = [...fs.readFileSync(out, 'utf8').matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1]);
     const site = 'https://edelkh65-png.github.io/hougaku-search/';
     assert.deepStrictEqual(urls, [site, `${site}stage.html`, `${site}piece.html?id=3`, `${site}piece.html?id=12`]);
+    // テキスト形式（sitemap.txt）は同じ URL を1行に1つ
+    assert.strictEqual(fs.readFileSync(path.join(dir, 'sitemap.txt'), 'utf8'), urls.join('\n') + '\n');
   });
 });
