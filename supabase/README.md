@@ -166,7 +166,7 @@ node tools/build-artifact.js
 
 ### サイトマップ（検索エンジン向け）
 
-Google の検索結果に出すため、Google Search Console にサイトを登録し（確認用のタグは `index.html` の `google-site-verification`）、サイトマップ `sitemap.xml` を送信しています。サイトマップにはトップページ・舞台で探す・全曲の詳細ページの URL が並んでいます。
+Google の検索結果に出すため、Google Search Console にサイトを登録し（確認用のタグは `index.html` の `google-site-verification`）、サイトマップを送信しています。サイトマップにはトップページ・舞台で探す・全曲の詳細ページの URL が並んでいます。`sitemap.xml`（XML 形式）と、同じ URL を1行ずつ並べた `sitemap.txt`（テキスト形式）の2つがあり、どちらも同じスクリプトで作られます。
 
 曲をまとめて登録・削除したときは、作り直して push してください（数曲ずつなら、ときどきで十分です）。
 
@@ -198,7 +198,7 @@ npm test
 | `songs.csv` | 最初に登録した楽曲リストの元データ（記録として保管。今は使っていません） |
 | `../tools/build-artifact.js` | claude.ai 版を作るスクリプト |
 | `../tools/artifact-shim.js` | claude.ai 版だけで使う部品 |
-| `../tools/build-sitemap.js` | サイトマップ（`../sitemap.xml`）を作るスクリプト |
+| `../tools/build-sitemap.js` | サイトマップ（`../sitemap.xml`・`../sitemap.txt`）を作るスクリプト |
 | `../tests/` | 動作確認のテスト |
 
 ## 画面のセキュリティ設定（CSP）

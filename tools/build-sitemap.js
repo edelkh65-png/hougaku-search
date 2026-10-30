@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// 検索エンジン向けのサイトマップ（sitemap.xml）を作る
+// 検索エンジン向けのサイトマップ（sitemap.xml と、同じ URL を1行ずつ並べた sitemap.txt）を作る
 //
 // 使い方（リポジトリの一番上で）：
 //   node tools/build-sitemap.js              … Supabase の今のデータで作る
 //   node tools/build-sitemap.js --data a.json … 保存したデータ（loadMusicData の結果）で作る
-//   node tools/build-sitemap.js --out x.xml   … 出力先（省略時はリポジトリの一番上の sitemap.xml）
+//   node tools/build-sitemap.js --out x.xml   … 出力先（省略時はリポジトリの一番上の sitemap.xml。sitemap.txt は同じ場所に作る）
 //
 // トップページ・舞台で探す・全曲の詳細ページ（piece.html?id=…）の URL を並べる。
 // 曲を登録・削除したら作り直して push する（Google Search Console には登録済み）。
@@ -39,8 +39,11 @@ async function loadFromSupabase() {
   return context.loadMusicData();
 }
 
-function build(pieces) {
-  const urls = [SITE, `${SITE}stage.html`, ...pieces.map((p) => p.id).sort((a, b) => a - b).map((id) => `${SITE}piece.html?id=${id}`)];
+function sitemapUrls(pieces) {
+  return [SITE, `${SITE}stage.html`, ...pieces.map((p) => p.id).sort((a, b) => a - b).map((id) => `${SITE}piece.html?id=${id}`)];
+}
+
+function buildXml(urls) {
   return '<?xml version="1.0" encoding="UTF-8"?>\n'
     + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
     + urls.map((url) => `  <url><loc>${url}</loc></url>\n`).join('')
@@ -50,8 +53,11 @@ function build(pieces) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const data = args.data ? JSON.parse(fs.readFileSync(args.data, 'utf8')) : await loadFromSupabase();
-  fs.writeFileSync(args.out, build(data.pieces));
-  console.log(`${args.out} を作りました（${data.pieces.length}曲＋2ページ）`);
+  const urls = sitemapUrls(data.pieces);
+  const txt = args.out.replace(/\.xml$/, '') + '.txt';
+  fs.writeFileSync(args.out, buildXml(urls));
+  fs.writeFileSync(txt, urls.join('\n') + '\n');
+  console.log(`${args.out} と ${txt} を作りました（${data.pieces.length}曲＋2ページ）`);
 }
 
 main().catch((error) => {
